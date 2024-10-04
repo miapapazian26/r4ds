@@ -717,6 +717,210 @@ ggplot(table1, aes(x = year, y = cases)) +
   geom_point(aes(color = country, shape = country)) +
   scale_x_continuous(breaks = c(1999, 2000)) # x-axis breaks at 1999 and 2000
 
+#lengthening data 
+#most real analyses will require at least a little tidying
+#tidyr provides two functions for pivoting data: pivot_longer and pivot_wider
+
+#data in column names 
+#the billboard dataset records the billboard rank of songs in the year 2000
+#each observation is a song, first three columns are variables that describethe song, 76 columns that describe the rank of the song in each week
+#column names are one variable and cell values are another 
+#to tidy this data use pivot_longer():
+billboard |> 
+  pivot_longer(
+    cols = starts_with("wk"),
+    names_to = "week",
+    values_to = "rank"
+  )
+#there are three key arguments:
+# cols specifies which columns need to be pivoted. uses the same syntax as select() so ex. !c(artist, track, date.entered) or starts_with("wk")
+# names_to names the variable stored in the column names, we named that variable week 
+# values_to names the variable stored in the cell values, we named that variable rank 
+#note that "week" and "rank" are quoted because those are new variables were creating, they dont exist in the data yet when we run pivot_longer()
+#take the NAs that result from the song being in the top 100 for less than 76 weeks, we can ask pivot_longer() to. get rid of them by setting values_drop_na = TRUE
+billboard |>
+  pivot_longer(
+    cols = starts_with("wk"),
+    names_to = "week", 
+    values_to = "rank", 
+    values_drop_na = TRUE
+  )
+#what if a song is in the top 100 for more than 76 weeks? 
+#additional columns wk77 and wk78 would be added to the data set
+
+#the data is now tidy, but to make future computation a bit easier we can covert values of week from character strings to numbers using mutate() and readr::parse_number()
+#parse_number() is a handy function that will extract the first number from a string ignoring all other text. 
+billboard_longer <- billboard |>
+  pivot_longer(
+    cols = starts_with("wk"),
+    names_to = "week",
+    values_to = "rank",
+    values_drop_na = TRUE
+  ) |>
+  mutate(
+    week = parse_number(week)
+  )
+billboard_longer
+
+#now that we have all the week numbers in one variable and all the rank values in another, we can visualize how song ranks vary over time:
+billboard_longer |>
+  ggplot(aes(x = week, y = rank, group = track)) +
+  geom_line(alpha = 0.25) +
+  scale_y_reverse()
+
+#how does pivoting work? 
+#suppose we have three patients with ids A, B and C and we take two blood pressure measurements on each patient
+#we will create the data with tribble()
+df <- tribble(
+  ~id, ~bp1, ~bp2,
+  "A", 100, 120,
+  "B", 140, 115,
+  "C", 120, 125
+)
+#we want our new data set to have three variables: id, measurement, and value. to achieve this we need to pivot the df longer:
+df |>
+  pivot_longer(
+    cols = bp1:bp2,
+    names_to = "measurement",
+    values_to = "value"
+)
+
+#many variables in column names 
+#using the who2 data set, we can organize with pivot_longer()
+who2 |>
+  pivot_longer(
+    cols = !(country:year), 
+    names_to = c("diagnosis", "gender", "age"),
+    names_sep = "_",
+    values_to = "count"
+  )
+#an alternative to names_sep is names_pattern which can be used to extract variables from more complicated naming scenarios 
+
+#data and variable names in the column headers
+#in cases where column names include a mix of variable values and variable names
+#using the household dataset 
+household
+#the dataset contains data about five families, with the names and dates of birth of up to two children 
+#the challenge is that the column names contain the names of two variables and the values of another 
+#to solve this problem we supply a vector to names_to, but this time using the ".value" sentinel
+#it tells pivot_longer() to use the first component of the pivoted column name as a variable name in the output
+household |>
+  pivot_longer(
+    cols = !family,
+    names_to = c(".value", "child"),
+    names_sep = "_",
+    values_drop_na = TRUE
+  )
+#values_drop_na = TRUE is used since the shape of the input forces the creation of explicit missing variables 
+
+#when you use ".value" the column names in the input contribute to both values and variable names in the output
+
+#widening data 
+#using pivot_wider(), data sets are made wider by increasing columns and reducing rows, and helps when one observation is spread across multiple rows 
+#looking at cms_patient_experience 
+cms_patient_experience
+#we can see the complete set of values for measure_cd and measure_title by using distinct():
+cms_patient_experience |>
+  distinct(measure_cd, measure_title)
+#neither of these columns will make good variable names 
+#measure_cd will be used as a source for the new column names for now, but in a real analysis you might want to create your own variable names that are short/meaningful
+#pivot_wider() has the opposite interface to pivot_longer(): 
+#instead of choosing new column names, we need to provide the existing columns that define the values (values_from) and the column name (names_from):
+cms_patient_experience |>
+  pivot_wider(
+    names_from = measure_cd,
+    values_from = prf_rate
+  )
+#the output doesn't look quite right. this is because pivot_wider needs to be told which column or columns have values that uniquely identify each row; in this case those are the variables starting with "org":
+cms_patient_experience |> 
+  pivot_wider(
+    id_cols = starts_with("org"),
+    names_from = measure_cd,
+    values_from = prf_rate
+  )
+#this gives the output that we are looking for. 
+
+#how does pivot_wider() work
+#starting with a simple data set,
+df <- tribble(
+  ~id, ~measurement, ~value, 
+  "A",        "bp1",    100,
+  "B",        "bp1",    140,
+  "B",        "bp2",    115,
+  "A",        "bp2",    120,
+  "A",        "bp3",    105
+)
+#take the values from the value column and the names from the measurement column 
+df |>
+  pivot_wider(
+    names_from = measurement,
+    values_from = value
+  )
+#to begin the process, pivot_wider() needs to first figure out what will go in the rows and columns. the new column names will be the unique values of measurement: 
+df |>
+  distinct(measurement) |>
+  pull()
+#by default, the rows in the output are determined by all the variables that aren't going into the new names or values. these are called the id_cols. There is only one column but in general there can be any number:
+df |>
+  select(-measurement, -value) |>
+  distinct()
+#pivot_wider() then combines these results to generate an empty data frame: 
+df |>
+  select(-measurement, -value) |>
+  distinct() |>
+  mutate(x = NA, y = NA, z = NA)
+#it then fills in all the missing values using the data in the input 
+#in this case, not every cell in the output has a corresponding value in the input as there's no third blood pressure measurement for patient B, so the cell remains missing. the idea that pivot_wider can "make" missing values
+
+#in a case where there is multiple rows in the input that correspond to one cell in the output:
+df <- tribble(
+  ~id, ~measurement, ~value,
+  "A",        "bp1",    100,
+  "A",        "bp1",    102,
+  "A",        "bp2",    120,
+  "B",        "bp1",    140, 
+  "B",        "bp2",    115
+)
+#if we attempt to pivot this we get an output that contains list-columns (chapter 23):
+df |>
+  pivot_wider(
+    names_from = measurement,
+    values_from = value
+  )
+#follow the hints in the warning to figure out where the problem is: 
+df |> 
+  group_by(id, measurement) |> 
+  summarize(n = n(), .groups = "drop") |> 
+  filter(n > 1)
+#after this its up to you to work out any warning messages 
+
+
+#SCRIPTS 
+#running code 
+#the key to using the script editor effectively is to memorize one of the most important keyboard shortcuts: ctrl + enter
+#this executes the current R expression in the console
+#ex. 
+library(dplyr)
+library(nycflights13)
+
+not_cancelled <- flights |> 
+  filter(!is.na(dep_delay), !is.na(arr_delay))
+
+not_cancelled |> 
+  group_by(year, month, day) |> 
+  summarize(mean = mean(dep_delay))
+#makes it easy to step through your complete script by repeatedly
+
+#always start the script with the packages you need 
+#but never include "install.packages" because that is inconsiderate 
+#rstudio diagnostics (6.1.2)
+#in the script editor, rstudio will highlight syntax errors with a red squiggly line and a cross in the sidebar - hover over to see the problem 
+#will also alert about potential problems 
+
+#6.1.3 saving and naming 
+#rstudio automatically saves the contents of the script editor when you quit
+
+
 
 
 
