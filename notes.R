@@ -1151,5 +1151,6 @@ tribble(
 )
 
 #WORKFLOW: GETTING HELP 
-#8.1 
+#8.1 google is your friend
+#if you get stuck, start with google. 
 
