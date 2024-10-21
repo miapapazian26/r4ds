@@ -1153,4 +1153,41 @@ tribble(
 #WORKFLOW: GETTING HELP 
 #8.1 google is your friend
 #if you get stuck, start with google. 
+#additionally add package names to narrow down results
+#google error messages 
+#look through stack overflow
+
+#8.2 making a reprex
+#if googling doesn't come up with anything useful, its a good idea to prepare a reprex
+#reprex = reproducible example
+#first, make the code reproducible
+#second, make it minimal - strip everything that is not directly related to your problem
+
+#when creating a reprex by hand, avoid problems by using the reprex package which is installed as part of the tidyverse
+#ex. lets say you copy this code onto your clipboard
+y <- 1:4
+mean(y)
+
+#then call reprex() where the default output is formatted for GitHub: 
+reprex::reprex()
+#a nicely rendered HTML preview will display in RStudio’s Viewer
+#the reprex is automatically copied to your clipboard 
+#this text is formatted in a special way, called Markdown, which can be pasted to sites like StackOverflow or Github and they will automatically render it to look like code. here’s what that Markdown would look like rendered on GitHub:
+# y <- 1:4
+# mean(y)
+# #> [1] 2.5
+#anyone can now copy, paste and run this code immediately 
+
+#you need three things to make your example reproducible - required packages, data, and code 
+#packages should be loaded at the top of the script so its easy to see which ones the example needs 
+#the easiest way to include data is to use dput() to generate the R code needed to recreate it. 
+#ex. to recreate the mtcars dataset in R, perform the following steps: 
+dput(mtcars)
+
+
+
+
+
+
+
 
