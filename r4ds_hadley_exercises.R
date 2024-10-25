@@ -40,4 +40,14 @@ flights |>
 # in the second table example, the table summarizes the total number of cases reported per year, over all countries. the year gives the total number of cases reported, and the total_cases is the total number of cases reported for that year, summed across all countries
 # in the third table example, the plot visualizes the number of cases changing over time in different countries. year represents the x-axis, cases reported represent the y-axis, group = country represents the trend over time, where each country is represented by its own line, color = country visually assigns each country a color, making it easier to differentiate trends, shape = country assigns different shapes for points that represent different countries, and scale_x_continuous(breaks = c(1999, 2000)) customizes the x-axis so that there are breaks at the years 1999 and 2000  
 # 2: a) extract the number of TB cases, we can use select to focus on the columns country, year, and cases 
-# b)
+
+#9.2.1 exercises 
+#1:
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(color = "pink", shape = 24, fill = "pink")
+
+#2: because color = "blue" is being treated as a categorical variable 
+#3: the stroke aesthetic controls the width of the border of shapes that have both fill and outline
+#4: ggplot will evaluate that condition for each data point and create a new categorical variable based on whether the condition is true/false. 
+
+#9.3 geometric objects 

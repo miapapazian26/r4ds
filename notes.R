@@ -1182,10 +1182,56 @@ reprex::reprex()
 #packages should be loaded at the top of the script so its easy to see which ones the example needs 
 #the easiest way to include data is to use dput() to generate the R code needed to recreate it. 
 #ex. to recreate the mtcars dataset in R, perform the following steps: 
-dput(mtcars)
+dput(mtcars) #run in R
+#copy the output
+#in reprex, type mtcars <-, then paste
+
+#8.3 investing in yourself 
+#keep on dedicating time each day to reading about R to pay off in the long run 
+
+#8.4 summary 
+#this concludes the "whole game" part of the book. 
+#next is visualize section, using ggplot2 to conduct exploratory data analysis.
 
 
+#VISUALIZE
+#9 layers 
+library(tidyverse)
 
+#9.2 aesthetic mappings 
+#the mpg data frame bundled with the ggplot2 package contains 234 observations on 38 car models
+mpg
+
+#among the variables there are displ, hwy, and class 
+#start by visualizing the relationship between displ and hwy for various classes of cars
+#do this with a scatterplot where the numerical variables are mapped to the x and y aesthetics and the categorical variable is mapped to an aesthetic like color or shape. 
+#left
+ggplot(mpg, aes(x = displ, y = hwy, color = class)) +
+  geom_point()
+
+#right
+ggplot(mpg, aes(x = displ, y = hwy, shape = class)) +
+  geom_point()
+
+#when class is mapped to shape we get two warnings. since ggplot only uses 6 shapes at a time, by default additional groups will go unplotted when you use the shape aesthetic. the second warning is related. there are 62 SUVs in the data set and they're not plotted
+#similarly we can map class to size, or alpha aesthetics as well, which control the size and transperancy of the points respectively. 
+#left
+ggplot(mpg, aes(x = displ, y = hwy, size = class)) +
+  geom_point()
+#right
+ggplot(mpg, aes(x = displ, y = hwy, alpha = class)) +
+  geom_point()
+
+#both of these produce warnings as well. 
+#mapping an unordered discrete variable to an ordered aesthetic is generally not a good idea because it implies a ranking that does not in fact exist. 
+#once you map an aesthetic ggplot takes care of the rest.
+#you can set the visual properties of your geom manually as an argument of your geom function instead of relying on a variable mapping to determine the appearance 
+
+#ex. we can make all the points in our plot blue 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(color = "blue")
+#here the color does not convey information about a variable, but only changes the appearance of the plot. 
+#need to pick a value that makes sense for that aesthetic 
 
 
 
