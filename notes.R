@@ -1193,7 +1193,6 @@ dput(mtcars) #run in R
 #this concludes the "whole game" part of the book. 
 #next is visualize section, using ggplot2 to conduct exploratory data analysis.
 
-
 #VISUALIZE
 #9 layers 
 library(tidyverse)
@@ -1233,7 +1232,91 @@ ggplot(mpg, aes(x = displ, y = hwy)) +
 #here the color does not convey information about a variable, but only changes the appearance of the plot. 
 #need to pick a value that makes sense for that aesthetic 
 
+#9.3 geometric objects
+#the plots use different geometric objects - geom - to represent the data 
+#plot on the left uses point geom and plot on the right uses smooth geom, a smooth line fitted to the data 
+#to change the geom in the plot, change the geom function that you add to ggplot(). 
+#to make the plots above: 
+#left - 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point()
 
+#right
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_smooth()
 
+#not every aesthetic works in every geom. you can set the shape of a point but cannot set the shape of a line.
+#you can set the linetype of the line for each unique value of the variable that you map to lineup. 
+#left
+ggplot(mpg, aes(x = displ, y = hwy, shape = drv)) +
+  geom_smooth()
+#right 
+ggplot(mpg, aes(x = displ, y = hwy, linetype = drv)) +
+  geom_smooth()
 
+#here geom_smooth() separates the cars into three lines based on their drv value, which describes a cars' drive train. one line describes all of the points that have a 4 value, one line describes all the points that have an f value, and one line describes all points that have an r value. 
+#here, 4 stands for four-wheel drive, f for front-wheel drive, and r for rear-wheel drive. 
+#we can make it clearer by overlaying the lines on top of the raw data. 
+ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+  geom_point() +
+  geom_smooth(aes(linetype = drv))
 
+#note that this plot contains two geoms in the same graph 
+#many geoms, like geom_smooth(), use a single geometric object to display multiple rows of data. for these geoms, you can set the group aesthetic to a categorical variable to draw multiple objects. 
+#ggplot will draw a separate object for each unique value of the grouping variable. 
+#ggplot will automatically group the data for these geoms whenever you map an aesthetic to a discrete variable.
+#this is convenient because the group aesthetic by itself does not add a legend or distinguishing features to the geoms
+#left
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_smooth()
+#middle
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_smooth(aes(group = drv))
+#right
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_smooth(aes(color = drv), show.legend = FALSE)
+
+#if you place mappings in a geom function, ggplot will treat them as local mappings for the layer. it will use these mappings to extend or overwrite the global mappings for that layer only.
+#this makes it possible to display different aesthetics in different layers. 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = class)) +
+  geom_smooth()
+
+#you can use this same idea to specify different data for each layer. 
+#here we used red points as well as open circles to highlight two-seater cars. the local data arguement in geom_point overrides the global data argument in ggplot for that layer only. 
+
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point() +
+  geom_point(
+    data = mpg |> filter(class == "2seater"),
+    color = "red"
+  ) +
+  geom_point(
+    data = mpg |> filter(class == "2seater"),
+    shape = "circle open", size = 3, color = "red"
+  )
+
+#geoms are the fundamental building blocks of ggplot2. you can completely transform the look of your plot by changing its geom. diff geoms can reveal diff features of your data. 
+#ex. the histogram an density plot below reveal that the distribution of highway mileage is bimodal and right skewed while the boxplot reveals two potential outliers.
+
+#left
+ggplot(mpg, aes(x = hwy)) +
+  geom_histogram(binwidth = 2)
+#middle
+ggplot(mpg, aes(x = hwy)) +
+  geom_density()
+#right
+ggplot(mpg, aes(x = hwy)) +
+  geom_boxplot()
+
+#ggplot provides more than 40 geoms, but these don't cover all possible plots one could make. 
+#ex. the ggridges package (https://wilkelab.org/ggridges/) is useful for making ridgeline plots, which can be useful for visualizing the density of a numerical variable for different levels of a categorical variable. 
+
+#in the following plot, we use a new geom, and we have also mapped the same variable to multiple aesthetics as well as set an aethetic to make the density curves transparent. 
+library(ggridges)
+
+ggplot(mpg, aes(x = hwy, y = drv, fill = drv, color = drv)) +
+  geom_density_ridges(alpha = 0.5, show.legend = FALSE)
+#picking joint bandwidth of 1.28
+
+#to learn more about any single geom, use help (?geom_smooth)

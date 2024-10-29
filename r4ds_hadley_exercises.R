@@ -50,38 +50,20 @@ ggplot(mpg, aes(x = displ, y = hwy)) +
 #3: the stroke aesthetic controls the width of the border of shapes that have both fill and outline
 #4: ggplot will evaluate that condition for each data point and create a new categorical variable based on whether the condition is true/false. 
 
-#9.3 geometric objects
-#the plots use different geometric objects - geom - to represent the data 
-#plot on the left uses point geom and plot on the right uses smooth geom, a smooth line fitted to the data 
-#to change the geom in the plot, change the geom function that you add to ggplot(). 
-#to make the plots above: 
-#left - 
+#9.3.1 exercises
+#1 geom_line, geom_boxplot, geom_histogram, and geom_area
+#2 show.legend = FALSE removes the legend from view in a plot. we used it earlier so it was easier to ignore?
+#3 the se argument geom_smooth controls whether we display the confidence interval around the smooth line. 
+#4
 ggplot(mpg, aes(x = displ, y = hwy)) +
-  geom_point()
+  geom_point(color = "black") +
+  geom_smooth(se = FALSE, color = "blue")
 
-#right
-ggplot(mpg, aes(x = displ, y = hwy)) +
-  geom_smooth()
-
-#not every aesthetic works in every geom. you can set the shape of a point but cannot set the shape of a line.
-#you can set the linetype of the line for each unique value of the variable that you map to lineup. 
-#left
-ggplot(mpg, aes(x = displ, y = hwy, shape = drv)) +
-  geom_smooth()
-#right 
-ggplot(mpg, aes(x = displ, y = hwy, linetype = drv)) +
-  geom_smooth()
-
-#here geom_smooth() separates the cars into three lines based on their drv value, which describes a cars' drive train. one line describes all of the points that have a 4 value, one line describes all the points that have an f value, and one line describes all points that have an r value. 
-#here, 4 stands for four-wheel drive, f for front-wheel drive, and r for rear-wheel drive. 
-#we can make it clearer by overlaying the lines on top of the raw data. 
 ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
-  geom_point() +
-  geom_smooth(aes(linetype = drv))
-
-#note that this plot contains two geoms in the same graph 
-#many geoms, like geom_smooth(), use a single geometric object to display multiple rows of data. for these geoms, you can set the group aesthetic to a categorical variable to draw multiple objects. 
-
+  geom_point(color = "black") +
+  geom_smooth(aes(linetype = drv), color = "blue", se = FALSE)
+ 
+ 
 
 
 
