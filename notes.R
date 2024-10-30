@@ -1320,3 +1320,25 @@ ggplot(mpg, aes(x = hwy, y = drv, fill = drv, color = drv)) +
 #picking joint bandwidth of 1.28
 
 #to learn more about any single geom, use help (?geom_smooth)
+
+#9.4 facets 
+#faceting with facet_wrap, which splits a plot into subplots that each display one subset of the data based on a categorical variable.
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point() +
+  facet_wrap(~cyl)
+#to facet your plot with the combination of two variables, switch from facet_wrap to facet_grid.
+#the first argument of facet_grid is also a formula, but now it is double sided. ex. rows ~ cols
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point() +
+  facet_grid(drv ~ cyl)
+#by default, each of the facets share the same scale and range for x and y axes. 
+#this is useful when we want to compare data across facets but can be limiting when we want to visualize the relationship between each facet
+#setting the scales argument in a faceting function to "free_x" will allow for different scales on y-axis across rows, and "free" will allow both. 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point() +
+  facet_grid(drv ~ cyl, scales = "free")
+
+
+
+
+

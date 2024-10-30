@@ -63,7 +63,25 @@ ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
   geom_point(color = "black") +
   geom_smooth(aes(linetype = drv), color = "blue", se = FALSE)
  
- 
+ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+  geom_point() +
+  geom_smooth(se = FALSE)
 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = drv)) +
+  geom_smooth(color = "blue", se = FALSE)
 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = drv)) +
+  geom_smooth(aes(linetype = drv), color = "blue", se = FALSE)
 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(fill = drv), shape = 21, color = "white", stroke = 1.5)
+
+#9.4.1 exercises 
+#1 ggplot will treat the continuous variable as a discrete value, will create "bins" to separate the data, so unlimited bins? 
+#2 the empty cells signify areas where no data points fell, following code:
+ggplot(mpg) + 
+  geom_point(aes(x = drv, y = cyl))
+#relate to the empty cells where cyl and drv do not overlap, therefore no data point. 
+#3"." is a way to include all in a function. 
