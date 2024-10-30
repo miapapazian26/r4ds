@@ -84,4 +84,41 @@ ggplot(mpg, aes(x = displ, y = hwy)) +
 ggplot(mpg) + 
   geom_point(aes(x = drv, y = cyl))
 #relate to the empty cells where cyl and drv do not overlap, therefore no data point. 
-#3"." is a way to include all in a function. 
+#3"." is a way to include all possible items in a function. the following code:
+ggplot(mpg) + 
+  geom_point(aes(x = displ, y = hwy)) +
+  facet_grid(drv ~ .)
+
+ggplot(mpg) + 
+  geom_point(aes(x = displ, y = hwy)) +
+  facet_grid(. ~ cyl)
+#makes one plot faceted into three sections, separated by drv. the second is a 4 section faceted plot separated by cyl.
+#4 take the first faceted plot in this section:
+ggplot(mpg) + 
+  geom_point(aes(x = displ, y = hwy)) + 
+  facet_wrap(~ cyl, nrow = 2)
+#faceting creates distinct panels for each group, which makes it easier to see trends or patterns. issues with overlapping points are avoided when using facets. more space is required tho, in order to use facets. 
+#the balance may shift with a larger dataset due to overcrowding. 
+#5 nrow specifies the number of rows in the layout of the faceted plot. ncol specifies the number of columns in the layout of the faceted plot. there is also dir, as.table, scales, strip.position, etc. facet_grid doesnt have nrow and ncol because it is designed to create a grid of panels based on two variables, one for rows and one for columns. 
+#6 
+ggplot(mpg, aes(x = displ)) + 
+  geom_histogram() + 
+  facet_grid(drv ~ .)
+
+ggplot(mpg, aes(x = displ)) + 
+  geom_histogram() +
+  facet_grid(. ~ drv)
+#the first, due to the spacing. 
+#7
+ggplot(mpg) +
+  geom_point(aes(x = displ, y = hwy)) +
+  facet_wrap(drv ~ .)
+ggplot(mpg) + 
+  geom_point(aes(x = displ, y = hwy)) +
+  facet_grid(drv ~ .)
+#the positions of the facet labels switch from the top side to the right hand side.
+
+#9.5 statistical transformations
+
+
+
