@@ -118,7 +118,63 @@ ggplot(mpg) +
   facet_grid(drv ~ .)
 #the positions of the facet labels switch from the top side to the right hand side.
 
-#9.5 statistical transformations
+#9.5.1 exercises 
+#1 the default geom of stat_summary is geom = "pointrange". this is a point and error bar range based on the summary stats you provide. 
+#2 geom_col requires you to provide the height of each bar explicitly. used when you have already computed values for each bar. geom bar does an automatic counting of rows for each x-axis category. if only an x-axis variable is provided, geom_bar will count the occurrences for each category and display the frequencies as bar heights. 
+# geom_col = pre-aggregated values, geom_bar = raw data was want to aggregate by counting 
+#3
+#geom	        default stat	         description
+#geom_bar()	stat_count	Creates bar plots by counting occurrences in each category.
+#geom_col()	stat_identity	Creates bar plots using pre-summarized values provided directly as y-axis values.
+#geom_histogram()	stat_bin	Creates histograms by binning data along the x-axis.
+#geom_freqpoly()	stat_bin	Similar to histogram but with lines connecting points for binned data.
+#geom_density()	stat_density	Creates a smoothed density estimate of data.
+#geom_boxplot()	stat_boxplot	Creates boxplots to show distributional summary (quartiles, median, outliers) of data.
+#geom_violin()	stat_ydensity	Creates violin plots, showing density distribution mirrored along the y-axis.
+#geom_smooth()	stat_smooth	Adds a smoothed line (often a LOESS or linear model) through data points.
+#geom_point()	stat_identity	Plots data points at specific coordinates (no transformation).
+#geom_line()	stat_identity	Connects points in the order they appear in the data (no transformation).
+#geom_area()	stat_identity	Fills the area under a line plot (no transformation).
+#geom_ribbon()	stat_identity	Creates bands around lines (e.g., confidence intervals) with ymin and ymax values.
+#geom_text()	stat_identity	Adds text labels to specified coordinates (no transformation).
+#geom_tile()	stat_identity	Creates heatmap-style plots using pre-specified x, y, and fill values.
+#geom_bin2d()	stat_bin2d	Creates heatmaps by binning data into 2D rectangular bins and counting occurrences.
+#geom_hex()	stat_binhex	Similar to geom_bin2d() but bins data into hexagonal cells.
+#geom_contour()	stat_contour	Draws contour lines based on a 2D density estimate or pre-computed matrix.
+#geom_sf()	stat_sf	Plots simple features (geospatial data) without data transformation.
+#geom_quantile()	stat_quantile	Fits and displays quantile regression lines through data.
+#geom_function()	stat_function	Plots a mathematical function by generating x-y pairs across a specified range.
+#geom_boxplot()	stat_boxplot	Plots box plots to show distributional summaries.
+#geom_qq()	stat_qq	Creates a Q-Q plot to compare quantiles of a dataset to a theoretical distribution.
+#geom_qq_line()	stat_qq_line	Adds a line to a Q-Q plot for reference against a theoretical distribution.
+#geom_sf()	stat_sf_coordinates	Draws spatial features based on coordinates from simple features.
+#geom_map()	stat_identity	Creates maps based on spatial polygons (no transformation).
+#geom_step()	stat_identity	Creates step plots, often used for time series or survival data (no transformation).
+
+#4 the stat_smooth function is used to add a smoothed line to a plot. it computes the fitted values and the confidence interval bounds.
+#5 when creating a proportion bar chart, setting group = 1 is necessary to indicate that all bars belong to a single group for calculating proportions correctly.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

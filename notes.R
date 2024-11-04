@@ -1338,7 +1338,36 @@ ggplot(mpg, aes(x = displ, y = hwy)) +
   geom_point() +
   facet_grid(drv ~ cyl, scales = "free")
 
+#9.5 statistical transformations
+#the diamonds dataset is in the ggplot2 package.
+#this plot shows that more diamonds are available with high quality cuts than with low quality cuts. 
+ggplot(diamonds, aes(x = cut)) +
+  geom_bar()
 
+#bar charts, histograms, and frequency polygond bin your data and then plot bin counts, the number of points that fall in each bin.
+#smoothers fit a model to your data and then plot predictions from the model
+#boxplots compute the five-number summary of the distribution and then display that summary as a specially formatted box. 
+#the algorithm used to calculate new values for a graph is a stat (statistical transformation)
 
+#every geom has a default stat and every stat has a default geom
+#there are three reasons why you might need to use a stat explicitly
+#you might want to override the default stat. for ex. in the following code, we change the stat of geom_bar from count to identity. this lets us map the height of the bars to the raw values of a y variable.
+diamonds |>
+  count(cut) |>
+  ggplot(aes(x = cut, y = n)) +
+  geom_bar(stat = "identity")
+#you might want to override the default mapping from transformed variables to aesthetics. for ex., you may want to display a bar chart of proportions rather than counts: 
+ggplot(diamonds, aes(x = cut, y = after_stat(prop), group = 1)) +
+  geom_bar()
+#to look for the possible variables that can be computed by the stat, look for the section titled "computed variables" in the help for geom_bar(). 
 
+#third, you might want to draw greater attention to the statistical transformation in your code.  
+ggplot(diamonds) +
+  stat_summary(
+    aes(x = cut, y = depth),
+    fun.min = min, 
+    fun.max = max,
+    fun = median
+  )
 
+#9.6 position adjustments 
