@@ -154,7 +154,21 @@ ggplot(mpg) +
 #4 the stat_smooth function is used to add a smoothed line to a plot. it computes the fitted values and the confidence interval bounds.
 #5 when creating a proportion bar chart, setting group = 1 is necessary to indicate that all bars belong to a single group for calculating proportions correctly.
 
-
+#9.6.1 exercises 
+#1
+ggplot(mpg, aes(x = cty, y = hwy)) + 
+  geom_point()
+#change to: 
+ggplot(mpg, aes(x = cty, y = hwy)) + 
+  geom_jitter()
+#2 there is no difference between the two plots. position identity is the default behavior for geom point anyways. 
+#3 there are two main parameters, width and height. default is 0.4 for both. you can also just jitter in one direction if you need. 
+#4
+#the jitter geom is a convenient shortcut for geom_point(position = "jitter"). it adds a small amount of random variation to the location of each point, and is a useful way of handling overplotting caused by discreteness in smaller datasets.
+#this is a variant geom_point() that counts the number of observations at each location, then maps the count to point area. it useful when you have discrete data and overplotting.
+#5 the default position adjustment for geom_boxplot() is "dodge"
+ggplot(mpg, aes(x = class, y = hwy)) +
+  geom_boxplot()
 
 
 

@@ -1371,3 +1371,50 @@ ggplot(diamonds) +
   )
 
 #9.6 position adjustments 
+#theres one more piece of magic associated with bar charts. you can color a bar chart using either the color aesthetic or more usefully, the fill aesthetic:
+#left
+ggplot(mpg, aes(x = drv, color = drv)) +
+  geom_bar()
+#right
+ggplot(mpg, aes(x = drv, fill = drv)) +
+  geom_bar()
+
+#note what happens if you map the fill aesthetic to another variable, like class: the bars are automatically stacked. each colored rectange represents a combination of drv and class: 
+ggplot(mpg, aes(x = drv, fill = class)) +
+  geom_bar()
+#the stacking is performed automatically using the position adjustment specified by the position argument. if you don't want a stacked bar chart, you can use one of three other options: "identify", "doge", or "fill"
+
+#position = "identity" will place each object exactly where it falls in the context of the graph. this is not very useful for bars, because it overlaps them. to see that overlapping we either need to make the bars slightly transparent by setting alpha to a small value, or completely transparent by setting fill = NA
+#left
+ggplot(mpg, aes(x = drv, fill = class)) +
+  geom_bar(alpha = 1/5, position = "identity")
+#right
+ggplot(mpg, aes(x = drv, color = class)) +
+  geom_bar(fill = NA, position = "identity")
+
+#the identity position adjustment is more useful for 2d geoms, like points, where it is the default. 
+
+#position = "fill" works like stacking, but makes each set of stacked bars the same height. this makes it easier to compare proportions across groups 
+#position = "dodge" places overlapping objects directly beside one another. this makes it easier to compare individual values. 
+#left
+ggplot(mpg, aes(x = drv, fill = class)) +
+  geom_bar(position = "fill")
+#right
+ggplot(mpg, aes(x = drv, fill = class)) +
+  geom_bar(position = "dodge")
+
+#theres one other type of adjustment that's not useful for bar charts, but can be very useful for scatterplots.
+#recall our first scatterplot. the plot displays only 126 points, even though there are 234 observations in the dataset.
+#the underlying values of hwy and displ are rounded so the points appear on a grid and many points overlap each other. this problem is known as overplotting. this arrangement makes it difficult to see the distribution of the data. 
+#you can avoid the confusion by setting the position adjustment to "jitter"
+#position = "jitter" adds a small amount of random noise to each point. this spreads the points out because no two points are likely to receive the same amount of random noise. 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(position = "jitter")
+
+#adding randomness seems like a strange way to improve your plot, but while it makes your graph less accurate at small scales, it makes your graph more revealing at large scales. because this is such a useful operation, ggplot2 comes with a shorthand for - geom_point(position = "jitter"):
+geom_jitter()
+
+#again, to learn more about a position adjustment, look up the help page associated with each adjustment. 
+#ex. ?position_fill 
+
+
