@@ -1417,4 +1417,47 @@ geom_jitter()
 #again, to learn more about a position adjustment, look up the help page associated with each adjustment. 
 #ex. ?position_fill 
 
+#9.7 coordinate systems
+#coordinate systems are probably the most complicated part of ggplot2. the default coordinate system is the cartesian coordinate system where the x and y positions act independently to determine the location fo each point. there are two other coordinate system that are occasionally helpful. 
+# coord_quickmap() sets the aspect ratio correctly for geographic maps. this is very important if you're plotting spacial data with ggplot2. 
+#ex. 
+nz <- map_data("nz")
 
+ggplot(nz, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill = "white", color = "black")
+
+ggplot(nz, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill = "white", color = "black") +
+  coord_quickmap()
+
+#coord_polar() uses polar coordinates. polar coordinates reveal an interestinf connection between a bar chart and a coxcomb chart. 
+#ex. 
+bar <- ggplot(data = diamonds) + 
+  geom_bar(
+    mapping = aes(x = clarity, fill = clarity), 
+    show.legend = FALSE,
+    width = 1
+  ) + 
+  theme(aspect.ratio = 1)
+
+bar + coord_flip()
+bar + coord_polar()
+
+#9.8 the layered grammar of graphics 
+#we can expand on the graphing template from 1.3 by adding position adjustments, stats, coordinate systems, and faceting:
+# ggplot(data = <DATA>) + 
+#   <GEOM_FUNCTION>(
+#     mapping = aes(<MAPPINGS>),
+#     stat = <STAT>, 
+#     position = <POSITION>
+#   ) +
+#   <COORDINATE_FUNCTION> +
+#   <FACET_FUNCTION>
+
+#our new template takes seven parameters, the bracketed words that appear in the template.  
+#the seven parameters in the template compose the grammar of graphics, a formal system for building plots. the grammar of graphics is based on the insight that you can uniquely describe any plot as a combination of a dataset, a geom, a set of mappings, a stat, a position adjustment, a coordinate system, a faceting scheme, and a theme.
+
+#for more about the theoretical underpinnings of ggplot2 - read "the layered grammar of graphics 
+
+#EXPLORATORY DATA ANALYSIS 
+#10.1 introduction

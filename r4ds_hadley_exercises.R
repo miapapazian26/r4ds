@@ -170,8 +170,19 @@ ggplot(mpg, aes(x = cty, y = hwy)) +
 ggplot(mpg, aes(x = class, y = hwy)) +
   geom_boxplot()
 
-
-
+#9.7.1 exercises
+#1 
+ggplot(mpg, aes(x = "", fill = class)) +
+  geom_bar(width = 1) +
+  coord_polar("y")
+#2 the difference is how they handle map projections. coord_quickmap is faster and useful for basic visualizations where a quick map view is sufficient. coord_map() allows you to specify a map projection, performs a true map projection, more computationally expensive. 
+#3 
+ggplot(data = mpg, mapping = aes(x = cty, y = hwy)) +
+  geom_point() + 
+  geom_abline() +
+  coord_fixed()
+#the plot is the relationship between city and highway mpg. points along the geom_abline indicate that city and highway mpg are the same for those cars. since all of the points are above the line, it indicates that the highway mpg is greater than the city mpg for most cars.
+#coord_fixed is so important because it ensures the axes are scaled the same way, meaning that the units on both the x and y axes are equal in physical length. 
 
 
 
