@@ -1461,3 +1461,6 @@ bar + coord_polar()
 
 #EXPLORATORY DATA ANALYSIS 
 #10.1 introduction
+
+
+
