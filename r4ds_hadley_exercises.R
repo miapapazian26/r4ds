@@ -184,9 +184,34 @@ ggplot(data = mpg, mapping = aes(x = cty, y = hwy)) +
 #the plot is the relationship between city and highway mpg. points along the geom_abline indicate that city and highway mpg are the same for those cars. since all of the points are above the line, it indicates that the highway mpg is greater than the city mpg for most cars.
 #coord_fixed is so important because it ensures the axes are scaled the same way, meaning that the units on both the x and y axes are equal in physical length. 
 
-
-
-
+#11.2.1 exercises 
+#1 
+ggplot(mpg, aes(x = displ, y = hwy, color = class)) +
+  geom_point() +
+  labs(
+    title = "Fuel Economy Analysis",
+    x = "Engine Displacement (L)",
+    y = "Highway MPG",
+    color = "Vehicle Class"
+  )
+#2
+ggplot(mpg, aes(x = cty, y = hwy, color = drv, shape = drv)) +
+  geom_point(size = 3) +
+  labs(
+    title = "Fuel Efficiency: Highway vs City",
+    x = "City MPG",
+    y = "Highway MPG",
+    color = "Drive Train",
+    shape = "Drive Train"
+  )
+#3
+ggplot(mpg, aes(x = cty, y = hwy)) + 
+  geom_point() +
+  labs(
+    title = "Highway MPG Compared to City MPG",
+    x = "City MPG",
+    y = "Highway MPG",
+  )
 
 
 

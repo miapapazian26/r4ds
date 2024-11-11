@@ -1459,8 +1459,39 @@ bar + coord_polar()
 
 #for more about the theoretical underpinnings of ggplot2 - read "the layered grammar of graphics 
 
-#EXPLORATORY DATA ANALYSIS 
-#10.1 introduction
+#COMMUNICATION 
+#11.1 install needed packages 
+library(tidyverse)
+library(scales)
+library(ggrepel)
+library(patchwork)
 
+#11.2 labels 
+#the first place to start when turning an exploratory graphic into an expository graphic is with good labels. you add labels with the labs() function. 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = class)) +
+  geom_smooth(se = FALSE) +
+  labs(
+    x = "Engine displacement (L)",
+    y = "Highway fuel economy (mpg)",
+    color = "Car type",
+    title = "Fuel efficiency generally decreases with engine size",
+    subtitle = "Two seaters (sports cars) are an exception because of their light weight",
+    caption = "Data from fueleconomy.gov"
+  )
+#the purpose of a plot title is to summarize the main findings. if you need more text, there are two other useful labels, subtitle ass additional detail in a smaller font beneath the title and caption adds text at the bottom right of the plot, often used to describe the source of the data. labs can replace the axis and legend titles. 
 
+#it is possible to use mathematical equations instead of text strings. switch "" out for quote()
+df <- tibble(
+  x = 1:10,
+  y = cumsum(x^2)
+)
 
+ggplot(df, aes(x, y)) +
+  geom_point() +
+  labs(
+    x = quote(x[i]),
+    y = quote(sum(x[i] ^ 2, i == 1, n))
+  )
+
+#11.3 annotations
