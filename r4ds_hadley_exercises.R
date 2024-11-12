@@ -213,10 +213,28 @@ ggplot(mpg, aes(x = cty, y = hwy)) +
     y = "Highway MPG",
   )
 
-
-
-
-
+#11.3.1
+#1 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point() +
+  geom_text(aes(x = Inf, y = Inf), label = "Top Right", hjust = 1, vjust = 1) +
+  geom_text(aes(x = -Inf, y = Inf), label = "Top Left", hjust = 0, vjust = 1) +
+  geom_text(aes(x = Inf, y = -Inf), label = "Bottom Right", hjust = 1, vjust = 0) +
+  geom_text(aes(x = -Inf, y = -Inf), label = "Bottom Left", hjust = 0, vjust = 0)
+#2
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point() +
+  annotate("point", x = 4, y = 30, color = "blue", size = 4, shape = 21)
+#3
+# the labels will appear in each facet by default. to add a label to only one facet, you can filter your data so that the label only applies to that specific subset of the data.
+#4
+# the appearance of the background box is controlled by arguments like fill, color, and label.size
+# to have different labels in each facet, create a separate label for each facet in your dataset and use geom_text() with facet_wrap() or facet_grid().
+#5
+# angle: sets the angle of the arrowhead.
+# type: specifies the shape of the arrow (e.g., "closed" or "open").
+# length: defines the length of the arrowhead (can be set with unit()).
+# ends: controls w
 
 
 

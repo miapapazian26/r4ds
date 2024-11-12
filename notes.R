@@ -1495,3 +1495,90 @@ ggplot(df, aes(x, y)) +
   )
 
 #11.3 annotations
+#in addition to labelling major compenents of a plot, it is also useful to label individual observation or groups of observations.
+#we can do this using geom_text - geom_text is similar to geom_point, but it has the additional aesthetic of label that makes it possible to add textual labels to the plot. 
+#there are two sources of labels. first you could have a tibble that provides labels.
+#ex., in the following plot, we pull out the cars with the highest engine size in each drive type and save their information as a new data frame called label_info. 
+label_info <- mpg |>
+  group_by(drv) |>
+  arrange(desc(displ)) |>
+  slice_head(n = 1) |>
+  mutate(
+    drive_type = case_when(
+      drv == "f" ~ "front-wheel drive",
+      drv == "r" ~ "rear-wheel drive",
+      drv == "4" ~ "4-wheel drive"
+    )
+  ) |>
+  select(displ, hwy, drv, drive_type)
+
+label_info
+#then we can use this new data frame to directly label the three groups to replace the legend with labels placed directly on the plot. 
+#using the fontface and size arguments we can customize the look of the text labels. they r larger than the rest of the text on the plot and bolded
+ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(se = FALSE) +
+  geom_text(
+    data = label_info, 
+    aes(x = displ, y = hwy, label = drive_type),
+    fontface = "bold", size = 5, hjust = "right", vjust = "bottom"
+  ) +
+  theme(legend.position = "none")
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#note the use of hjust (horizontal justification) and vjust (vertical justification) to control the alignment of the label
+#the plot we made above is hard to read because the labels overlap with eachother and with the points. 
+#we can use the geom_label_repel() function to address both of these issues. (ggrepel package)
+#this useful package will automatically adjust labels so that they don't overlap
+ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(se = FALSE) +
+  geom_label_repel(
+    data = label_info, 
+    aes(x = displ, y = hwy, label = drive_type),
+    fontface = "bold", size = 5, nudge_y = 2
+  ) +
+  theme(legend.position = "none")
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#you can use the same idea to highlight certain points on a plot with geom_text_repel()
+#note another handy technique used here -> we added a second layer of large, hollow points to further highlight the labelled points 
+potential_outliers <- mpg |>
+  filter(hwy > 40 | (hwy > 20 & displ > 5))
+
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point() +
+  geom_text_repel(data = potential_outliers, aes(label = model)) +
+  geom_point(data = potential_outliers, color = "red") +
+  geom_point(
+    data = potential_outliers,
+    color = "red", size = 3, shape = "circle open"
+  )
+
+#in addition to geom_text() and geom_label(), you have many other geoms in ggplot2 available to help annotate your plot
+#geom_hline() and geom_vline() to add reference lines. we often make them thick (linewidth = 2) and white (color = white), and draw them underneath the primary data layer. That makes them easy to see, without drawing attention away from the data.
+#geom_rect() to draw a rectangle around points of interest. the boundaries of the rectangle are defined by aesthetics xmin, xmax, ymin, ymax. alternatively, look into the ggforce package, specifically geom_mark_hull(), which allows you to annotate subsets of points with hulls.
+#geom_segment() with the arrow argument to draw attention to a point with an arrow. use aesthetics x and y to define the starting location, and xend and yend to define the end location.
+
+#another handy function for adding annotations to plots is annotate(). 
+#as a rule of thumb, geoms are generally useful for highlighting a subset of the data while annotate is useful for adding one or few annotation elements to a plot. 
+
+#to demonstrate using annotate, we can create some text to add to our plot
+#this text is a bit long, so we can use stringr::str_wrap() to automatically add line breaks to it given the number of characters you want per line:
+trend_text <- "Larger engine sizes tend to have lower fuel economy." |>
+  str_wrap(width = 30)
+trend_text
+#> [1] "Larger engine sizes tend to\nhave lower fuel economy."
+#then we add two layers of annotation: one with a label geom and the other with a segment geom. the x and y aesthetics in both define where the annotation should state, and the xend and yend aesthetics in the segment annotation define the end location of the segment. 
+#note that the segment is styled as an arrow
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point() +
+  annotate(
+    geom = "label", x = 3.5, y = 38,
+    label = trend_text,
+    hjust = "left", color = "red"
+  ) +
+  annotate(
+    geom = "segment",
+    x = 3, y = 35, xend = 5, yend = 25, color = "red",
+    arrow = arrow(type = "closed")
+  )
+#annotation is a powerful tool for communicating main takeaways and interesting festures of your visualizations. the only limit is your imagination. 
