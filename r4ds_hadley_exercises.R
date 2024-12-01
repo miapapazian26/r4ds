@@ -236,8 +236,104 @@ ggplot(mpg, aes(x = displ, y = hwy)) +
 # length: defines the length of the arrowhead (can be set with unit()).
 # ends: controls w
 
+#11.4.6 
+#1 
+# geom_hex uses the fill aesthetic by default, not color. the scale_color_gradient affects the color aesthetic but geom_hex needs fill to control the color scale of the hex bins. 
+#2
+# the first argument to every scale_* function is aesthetics. it specifies the aesthetics that the scale should apply to. in labs, this function is used to set labels for the axes, title and legends rather than modifying how data is mapped to aesthetics. 
+#3
+# create the plot with your 'presidential' dataset
+presidential |>
+  mutate(id = row_number()) |>
+  ggplot(aes(x = start, y = id)) +
+  # plot points at the start of each term, colored by party
+  geom_point(aes(color = party), size = 3) +  
+  # plot segments for each presidential term
+  geom_segment(aes(xend = end, yend = id, color = party), size = 6) +
+  # customize x-axis to break every 4 years
+  scale_x_date(name = "Year", 
+               breaks = seq(from = min(presidential$start), 
+                            to = max(presidential$end), 
+                            by = "4 years"), 
+               date_labels = "'%y") +
+  # improve y-axis display
+  scale_y_continuous(breaks = presidential$id, 
+                     labels = presidential$name, 
+                     expand = c(0.1, 0.1)) +
+  # add informative plot labels
+  labs(title = "Presidential Terms in the United States",
+       subtitle = "Color-coded by party, labeled by president",
+       x = "Year",
+       y = "President",
+       caption = "Data source: US Presidential history") +
+  # use a minimal theme with adjusted x-axis labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels for readability
+        axis.text.y = element_text(size = 10)) +  # Adjust y-axis label size
+  # label each term with the president's name
+  geom_text(aes(label = name), vjust = -0.5, hjust = 0.5)  # Position labels slightly above the points
+#4
+# create the plot
+ggplot(diamonds, aes(x = carat, y = price)) +
+  geom_point(aes(color = cut), alpha = 1/20)  # Use transparency to reduce point overlap
+# modify the plot to improve legend visibility
+ggplot(diamonds, aes(x = carat, y = price)) +
+  geom_point(aes(color = cut), alpha = 1/20) +
+  scale_color_discrete(
+    name = "Diamond Cut", 
+    guide = guide_legend(
+      override.aes = list(size = 4, alpha = 1)  # Increase symbol size and remove transparency in the legend
+    )
+  )
 
+#11.5.1
+#1 
+# basic plot with theme applied
+ggplot(diamonds, aes(x = carat, y = price)) +
+  geom_point(aes(color = cut), alpha = 1/20) +
+  scale_color_discrete(
+    name = "Diamond Cut", 
+    guide = guide_legend(
+      override.aes = list(size = 4, alpha = 1)  # Increase symbol size and remove transparency in the legend
+    )
+  ) +
+  theme_minimal()  # Apply the "minimal" theme from ggthemes
 
+#2 
+# customize axis labels 
+ggplot(diamonds, aes(x = carat, y = price)) +
+  geom_point(aes(color = cut), alpha = 1/20) +
+  scale_color_discrete(
+    name = "Diamond Cut", 
+    guide = guide_legend(
+      override.aes = list(size = 4, alpha = 1)  # Increase symbol size and remove transparency in the legend
+    )
+  ) +
+  theme_minimal() +  # Apply the "minimal" theme from ggthemes
+  theme(
+    axis.title.x = element_text(color = "blue", face = "bold"),  # Make x-axis title blue and bold
+    axis.title.y = element_text(color = "blue", face = "bold")   # Make y-axis title blue and bold
+  )
+
+#11.6.1
+#1
+# omitting the parenthesis can change how the plots are arranged. without them, the plots could be stacked or be misaligned. 
+#2
+# plot one should be on the top row, plot two and three should be on the second row, each spanning half the width of plot one. the plot also must be labeled. 
+p1 <- ggplot(mpg, aes(x = displ, y = hwy)) + 
+  geom_point() + 
+  labs(title = "Plot 1: Highway Mileage vs Engine Size (Fig. A)")
+
+p2 <- ggplot(mpg, aes(x = drv, y = hwy)) + 
+  geom_boxplot() + 
+  labs(title = "Plot 2: Highway Mileage vs Drive Train (Fig. B)")
+
+p3 <- ggplot(mpg, aes(x = drv, y = cty)) + 
+  geom_boxplot() + 
+  labs(title = "Plot 3: City Mileage vs Drive Train (Fig. C)")
+
+# combine the plots with patchwork
+(p1) / (p2 | p3)
 
 
 

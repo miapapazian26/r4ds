@@ -1582,3 +1582,309 @@ ggplot(mpg, aes(x = displ, y = hwy)) +
     arrow = arrow(type = "closed")
   )
 #annotation is a powerful tool for communicating main takeaways and interesting festures of your visualizations. the only limit is your imagination. 
+
+#11.4 scales 
+#the third way you can make your plot better for communication is to adjust the scales. scales control how the aesthetic mappings manifest visually. 
+
+#11.4.1 default scales 
+#normally ggplot2 automatically adds scales for you. ex. 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = class))
+#ggplot will automatically add default scales behind the scenes: 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = class)) +
+  scale_x_continuous() +
+  scale_y_continuous() +
+  scale_color_discrete()
+
+#note the naming scheme for scales: scale_ followed by the name of the aesthetic, then _, then the name of the scale. the default scales are named according to the type of variable they align with: continuous, discrete, datetime, or date. scale_x_continuous() puts the numeric values from displ on a continuous number line on the x-axis, scale_color_discrete() chooses colors for each of the class of car, etc.
+#the default scales have been carefully chosen to do a good job with a wide range of inputs. 
+#you might want to override the defaults for two reasons: you might want to tweak some of the parameters of the default scale, this allows you to do things like change the breaks on the axes or the key labels on the legend. 
+#you might want to replace the scale altogether and use a different algorithm. often you can do better than the default because you know more about the data. 
+
+#11.4.2 axis ticks and legend keys 
+#collectively axes and legends are called guides. axes are used for x and y aesthetics; legends are used for everything else 
+#there are two primary arguments that affect the appearance of the ticks on the axes and the keys on the legend. breaks and labels. 
+#breaks control the position of the ticks or the values associated with the keys. labels controls the text label associated with each tick/key. the most common use of breaks is to override the default choice. 
+#ex: 
+ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+  geom_point() +
+  scale_y_continuous(breaks = seq(15, 40, by = 5)) 
+#you can use labels the same way, but you can also set it to NULL to suppress the labels altogether. This can be useful for maps, or for publishing plots where you can't share the absolute numbers. you can also use breaks and labels to control the appearance of legends. for discrete scales for categorical variables, labels can be named list of the existing level names and the desired labels for them. 
+#ex. 
+ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+  geom_point() +
+  scale_x_continuous(labels = NULL) +
+  scale_y_continuous(labels = NULL) +
+  scale_color_discrete(labels = c("4" = "4-wheel", "f" = "front", "r" = "rear"))
+#the labels argument coupled with labelling functions from the scales package is also useful for formatting numbers as currency, percent, etc. 
+#the plot on the left shows default labelling with label_dollar(), which adds a dollar sign as well as a thousand separator coma. the plot on the right adds further customization by dividing dollar values by 1,000 and adding a suffix "K" (for thousands) as well as adding custom breaks.
+#note, breaks is in the original scale of the data. 
+# left
+ggplot(diamonds, aes(x = price, y = cut)) +
+  geom_boxplot(alpha = 0.05) +
+  scale_x_continuous(labels = label_dollar())
+
+# right
+ggplot(diamonds, aes(x = price, y = cut)) +
+  geom_boxplot(alpha = 0.05) +
+  scale_x_continuous(
+    labels = label_dollar(scale = 1/1000, suffix = "K"), 
+    breaks = seq(1000, 19000, by = 6000)
+  )
+#another handy label function is label_percent(): 
+ggplot(diamonds, aes(x = cut, fill = clarity)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(name = "Percentage", labels = label_percent())
+#another use of breaks is when you have relatively few data points and want to highlight exactly where the observations occur. for example, take this plot that shows when each US president started and ended their term. 
+presidential |>
+  mutate(id = 33 + row_number()) |>
+  ggplot(aes(x = start, y = id)) +
+  geom_point() +
+  geom_segment(aes(xend = end, yend = id)) +
+  scale_x_date(name = NULL, breaks = presidential$start, date_labels = "'%y")
+#note that for the breaks argument we pulled out the start variable as a vector with presidential$start because we can't do an aesthetic mapping for this argument. also, note that the specification of breaks and labels for date and datetime scales is a little different: 
+#date_labels takes a format specification, in the same form as parse_datetime()
+#date_breaks takes a string like "2 days" or "1 month" 
+
+#11.4.3 legend layout 
+#you will most often use breaks and labels to tweak the axes. while they both also work for legends, there are a few other techniques you are more likely to use. 
+#to control the overall positioning of the legend, you need to use theme() setting. 
+#they control the non-data parts of the plot. the theme setting legend.position controls where the legend is drawn. 
+base <- ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = class))
+
+base + theme(legend.position = "right") # the default
+base + theme(legend.position = "left")
+base + 
+  theme(legend.position = "top") +
+  guides(color = guide_legend(nrow = 3))
+base + 
+  theme(legend.position = "bottom") +
+  guides(color = guide_legend(nrow = 3))
+
+#if your plot is short and wide, place the legend at the top or bottom, and if it's tall and narrow, place the legend at the left or right. you can also use legend.position = "none" to suppress the display of the legend altogether.
+#to control the display of individual legends, use guides() along with guide_legend() or guide_colorbar. 
+#the following example shows two important settings, controlling the number of rows the legend uses with nrow, and overriding one of the aesthetics to make the points bigger. this is particularly useful if you have used a low alpha to display many points on a plot. 
+#ex: 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = class)) +
+  geom_smooth(se = FALSE) +
+  theme(legend.position = "bottom") +
+  guides(color = guide_legend(nrow = 2, override.aes = list(size = 4)))
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+
+#11.4.4 replacing a scale 
+#instead of tweaking the details a little, you can replace the scale altogether. there are two types of scales you're most likely to want to switch out: continuous position scales and color scales. fortuneately, the same principles apply to all the other aesthetics
+#ex: it's easier to see the precise relationship between carat and price if we log transform them: 
+# left
+ggplot(diamonds, aes(x = carat, y = price)) +
+  geom_bin2d()
+
+# right
+ggplot(diamonds, aes(x = log10(carat), y = log10(price))) +
+  geom_bin2d()
+
+#the disadvantage of this transformation is that the axes are now labelled with the transformed values, making it hard to interpret the plot.
+#instead of doing the transformation in the aesthetic mapping, we can instead do it with the scale. 
+#this is visually identical, except the axes are labelled on the original data scale. 
+ggplot(diamonds, aes(x = carat, y = price)) +
+  geom_bin2d() + 
+  scale_x_log10() + 
+  scale_y_log10()
+
+#another scale that is frequently customized is color. the default categorical scale picks colors that are evenly spaced around the color wheel. useful alternatives are the colorbrewer scales which have been hand tuned to work better for people with common types of color blindness. 
+#the two plots below look similar, but there is enough difference in the shades of red and green that the dots on the right can be distinguished even by people with red-green color blindness. 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = drv))
+
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = drv)) +
+  scale_color_brewer(palette = "Set1")
+
+#don't forget simpler techniques for improving accessibility. if there are just a few colors, you can add a redundant shape mapping. this will also help ensure your plot is interpretable in black and white. 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = drv, shape = drv)) +
+  scale_color_brewer(palette = "Set1")
+
+#when you have a predefined mapping between values and colors, use scale_color_manual(). 
+#ex, if we map presidential party to color, we want to use the standard mapping of red for republican and blue for democrat. one approach for assigning these colors is using hex color codes. 
+presidential |>
+  mutate(id = 33 + row_number()) |>
+  ggplot(aes(x = start, y = id, color = party)) +
+  geom_point() +
+  geom_segment(aes(xend = end, yend = id)) +
+  scale_color_manual(values = c(Republican = "#E81B23", Democratic = "#00AEF3"))
+
+#for continuous color, use the built in scale_color_gradient() or scale_fill_gradient()
+#if you have a diverging scale, you can use scale_color_gradient2(). That allows you to give, for example, positive and negative values different colors. that's sometimes useful if you want to distinguish points above or below the mean. 
+#another option is to use the viridis color scales. 
+#these scales are available as continuous, discrete, and binned palettes in ggplot2
+df <- tibble(
+  x = rnorm(10000),
+  y = rnorm(10000)
+)
+
+ggplot(df, aes(x, y)) +
+  geom_hex() +
+  coord_fixed() +
+  labs(title = "Default, continuous", x = NULL, y = NULL)
+
+ggplot(df, aes(x, y)) +
+  geom_hex() +
+  coord_fixed() +
+  scale_fill_viridis_c() +
+  labs(title = "Viridis, continuous", x = NULL, y = NULL)
+
+ggplot(df, aes(x, y)) +
+  geom_hex() +
+  coord_fixed() +
+  scale_fill_viridis_b() +
+  labs(title = "Viridis, binned", x = NULL, y = NULL)
+
+#note that all color scales come in two varieties: scale_color_*() and scale_fill_*() for the color and fill aesthetics respectively. 
+
+#11.4.5 zooming 
+#there are three ways to control the plot limits: adjusting what data are plotted, setting the limits in each scale, and setting xlim and ylim in coord_cartesian()
+
+#demonstrated in the following series of plots. the plot on the left shows the relationship between engine size and fuel efficiency, colored by type of drive train. the plot on the right shows the same variables but subsets the data that are plotted. subsetting the data has affected the x and y scales as well as the smooth curve. 
+# left
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = drv)) +
+  geom_smooth()
+
+# right
+mpg |>
+  filter(displ >= 5 & displ <= 6 & hwy >= 10 & hwy <= 25) |>
+  ggplot(aes(x = displ, y = hwy)) +
+  geom_point(aes(color = drv)) +
+  geom_smooth()
+
+#compare these to the two plots below where the plot on the left sets the limits on individual scales and the plot on the right sets them in coord_cartesian(). see that reducing the limits is equivalent to subsetting the data. to zoom in on a region of the plot, it’s generally best to use coord_cartesian().
+# left
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = drv)) +
+  geom_smooth() +
+  scale_x_continuous(limits = c(5, 6)) +
+  scale_y_continuous(limits = c(10, 25))
+
+# right
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = drv)) +
+  geom_smooth() +
+  coord_cartesian(xlim = c(5, 6), ylim = c(10, 25))
+
+#setting the limits on individual scales is generally more useful if you want to expand the limits, e.g., to match scales across different plots
+#ex., if we extract two classes of cars and plot them separately, it’s difficult to compare the plots because all three scales (the x-axis, the y-axis, and the color aesthetic) have different ranges.
+suv <- mpg |> filter(class == "suv")
+compact <- mpg |> filter(class == "compact")
+
+# left
+ggplot(suv, aes(x = displ, y = hwy, color = drv)) +
+  geom_point()
+
+# right
+ggplot(compact, aes(x = displ, y = hwy, color = drv)) +
+  geom_point()
+
+#a way to overcome this problem is to share scales across multiple plots, training the scales with the limits of the full data.
+x_scale <- scale_x_continuous(limits = range(mpg$displ))
+y_scale <- scale_y_continuous(limits = range(mpg$hwy))
+col_scale <- scale_color_discrete(limits = unique(mpg$drv))
+
+# left
+ggplot(suv, aes(x = displ, y = hwy, color = drv)) +
+  geom_point() +
+  x_scale +
+  y_scale +
+  col_scale
+
+# right
+ggplot(compact, aes(x = displ, y = hwy, color = drv)) +
+  geom_point() +
+  x_scale +
+  y_scale +
+  col_scale
+#in this case, you could have simply used faceting, but this technique is useful more generally, if for instance, you want to spread plots over multiple pages of a report. 
+
+#11.5 themes 
+#you can customize the non-data elements of your plot with a theme: 
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = class)) +
+  geom_smooth(se = FALSE) +
+  theme_bw()
+
+#ggplot includes the eight themes shown in figure 11.2 with theme_gray as the default. you can create your own themes need be. 
+#it is possible to control individual components of each theme, like the size and color of the font used for the y-axis. 
+#in the plot below we change the direction of the legend as well as put a black border around it. customization of the legend box and plot title elements of the theme are done with element_*() functions. 
+#they specify the styling of non-data components, e.g., the title text is bolded in the face argument of element_text() and the legend border color is defined in the color argument of element_rect().
+#theme elements that control the position of the title and the caption are plot.title.position and plot.caption.position, respectively. these are set to "plot" to indicate these elements are aligned to the entire plot area, instead of the plot panel (the default). 
+ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+  geom_point() +
+  labs(
+    title = "Larger engine sizes tend to have lower fuel economy",
+    caption = "Source: https://fueleconomy.gov."
+  ) +
+  theme(
+    legend.position = c(0.6, 0.7),
+    legend.direction = "horizontal",
+    legend.box.background = element_rect(color = "black"),
+    plot.title = element_text(face = "bold"),
+    plot.title.position = "plot",
+    plot.caption.position = "plot",
+    plot.caption = element_text(hjust = 0)
+  )
+#> Warning: A numeric `legend.position` argument in `theme()` was deprecated in ggplot2
+#> 3.5.0.
+#> ℹ Please use the `legend.position.inside` argument of `theme()` instead.
+
+#11.6 layout 
+#what if you have multiple plots you want to lay out in a certain way?
+#the patchwork package allows you to combine separate plots into the same graphic
+#to place two plots next to each other, you can simply add them to each other. you first need to create the plots and save them as objects (in the following example they’re called p1 and p2). then, you place them next to each other with +.
+p1 <- ggplot(mpg, aes(x = displ, y = hwy)) + 
+  geom_point() + 
+  labs(title = "Plot 1")
+p2 <- ggplot(mpg, aes(x = drv, y = hwy)) + 
+  geom_boxplot() + 
+  labs(title = "Plot 2")
+p1 + p2
+#it's important to note that in the above code chunk we did not use a new function from the patchwork package. instead, the package added a new functionality to the + operator. 
+#you can also create complex plot layouts with patchwork, ex. the following. 
+p3 <- ggplot(mpg, aes(x = cty, y = hwy)) + 
+  geom_point() + 
+  labs(title = "Plot 3")
+(p1 | p3) / p2
+
+#patchwork allows you to collect legends from multiple plots into one common legend, customize the placement of the legend as well as dimensions of the plots, and add a common title, subtitle, caption, etc. to your plots
+p1 <- ggplot(mpg, aes(x = drv, y = cty, color = drv)) + 
+  geom_boxplot(show.legend = FALSE) + 
+  labs(title = "Plot 1")
+
+p2 <- ggplot(mpg, aes(x = drv, y = hwy, color = drv)) + 
+  geom_boxplot(show.legend = FALSE) + 
+  labs(title = "Plot 2")
+
+p3 <- ggplot(mpg, aes(x = cty, color = drv, fill = drv)) + 
+  geom_density(alpha = 0.5) + 
+  labs(title = "Plot 3")
+
+p4 <- ggplot(mpg, aes(x = hwy, color = drv, fill = drv)) + 
+  geom_density(alpha = 0.5) + 
+  labs(title = "Plot 4")
+
+p5 <- ggplot(mpg, aes(x = cty, y = hwy, color = drv)) + 
+  geom_point(show.legend = FALSE) + 
+  facet_wrap(~drv) +
+  labs(title = "Plot 5")
+
+(guide_area() / (p1 + p2) / (p3 + p4) / p5) +
+  plot_annotation(
+    title = "City and highway mileage for cars with different drive trains",
+    caption = "Source: https://fueleconomy.gov."
+  ) +
+  plot_layout(
+    guides = "collect",
+    heights = c(1, 3, 2, 4)
+  ) &
+  theme(legend.position = "top")
