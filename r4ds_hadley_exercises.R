@@ -335,10 +335,38 @@ p3 <- ggplot(mpg, aes(x = drv, y = cty)) +
 # combine the plots with patchwork
 (p1) / (p2 | p3)
 
+#15.3.5 exercises
+#1
+# find name with the most vowels
+babynames %>%
+  mutate(vowels = str_count(name, "[aeiouAEIOU]")) %>%
+  slice_max(vowels, n = 1)
 
+# find name with the highest proportion of vowels
+babynames %>%
+  mutate(vowels = str_count(name, "[aeiouAEIOU]"),
+         proportion = vowels / nchar(name)) %>%
+  slice_max(proportion, n = 1)
+#2
+path <- "a/b/c/d/e"
 
+# replace forward slashes with backslashes
+path_backslash <- str_replace_all(path, "/", "\\\\")  
 
+# attempt to undo by replacing backslashes with forward slashes
+path_undo <- str_replace_all(path_backslash, "\\\\", "/")
 
+path_backslash
+path_undo
 
+#3
+str_to_lower_simple <- function(x) {
+  str_replace_all(x, "[A-Z]", tolower)
+}
 
+str_to_lower_simple("Hello WORLD!")
 
+#4
+phone_regex <- "\\(\\d{3}\\) \\d{3}-\\d{4}"
+
+str_view(c("(123) 456-7890", "123 456 7890", "(908) 310-8132"), phone_regex)
