@@ -2247,5 +2247,5 @@ str_extract(c("514-791-8141", "(123) 456 7890", "123456"), phone)
 
 #if you are using comments and want to match a space, newline or #, youll need to escape it with \. 
 
-
+#15.6 practice
 
