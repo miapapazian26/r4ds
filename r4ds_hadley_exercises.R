@@ -370,3 +370,92 @@ str_to_lower_simple("Hello WORLD!")
 phone_regex <- "\\(\\d{3}\\) \\d{3}-\\d{4}"
 
 str_view(c("(123) 456-7890", "123 456 7890", "(908) 310-8132"), phone_regex)
+
+#15.4.7 exercises 
+#1
+"\\\\'"
+"\\$\\^\\$"
+#2
+#\\ is a string containing a single backslash. the backslash itself is an escape character, therefore \\ is needed to represent the literal backslash
+#\\\ does not match because the third backslash is unescaped. would be interpreted as escaping the closing quote or some other control character.
+#to match \\\, it must be escaped with \\\\\\\\
+#3
+library(stringr)
+
+# get corpus of common words
+words <- stringr::words
+
+# 1. start with “y”
+str_subset(words, "^y")
+
+# 2. don’t start with “y”
+str_subset(words, "^[^y]")
+
+# 3. end with “x”
+str_subset(words, "x$")
+
+# 4. exactly three letters long (without using `str_length()`)
+str_subset(words, "^...$")
+
+# 5. have seven letters or more
+str_subset(words, "^.{7,}$")
+
+# 6. contain a vowel-consonant pair
+str_subset(words, "[aeiou][^aeiou]")
+
+# 7. contain at least two vowel-consonant pairs in a row
+str_subset(words, "(?:[aeiou][^aeiou]){2,}")
+
+# 8. only consist of repeated vowel-consonant pairs
+str_subset(words, "^(?:[aeiou][^aeiou])+$")
+
+#4
+# 1. airplane/aeroplane
+"airplane|aeroplane"
+
+# 2. aluminum/aluminium
+"aluminum|aluminium"
+
+# 3. analog/analogue
+"analog|analogue"
+
+# 4. ass/arse
+"ass|arse"
+
+# 5. center/centre
+"center|centre"
+
+# 6. defense/defence
+"defense|defence"
+
+# 7. donut/doughnut
+"donut|doughnut"
+
+# 8. gray/grey
+"gray|grey"
+
+# 9. modeling/modelling
+"modeling|modelling"
+
+# 10. skeptic/sceptic
+"skeptic|sceptic"
+
+# 11. summarize/summarise
+"summarize|summarise"
+
+#5
+words_switched <- str_replace_all(words, "(^.)(.*)(.)$", "\\3\\2\\1")
+valid_words <- str_subset(words_switched, words_switched %in% words)
+valid_words
+
+#6
+#^.*$ -  matches any string including empty ones. the ^ asserts the start of a line, .* matches any character zero or more, and $ asserts the end of the line
+#"\\{.+\\}" - matches any string inside curly braces. the \\{ matches an opening brace {,.+ matches one or more characters (any), and \\} matches a closing brace
+#\d{4}-\d{2}-\d{2} - matches a date in the format YYYY-MM-DD. \d matches digits, {4} specifies exactly four digits, and the - separates the year, month and day parts
+#"\\\\{4}" - matches exactly four backslashes. each backslash needs to be escaped with another backslash, so \\\\ represents one literal backslash, and {4} ensures exactly 4 backslashes
+#\..\..\.. - matches any string with three periods, with any characters in between. . matches any character except a newline, and \.. matches a literal period
+#(.)\1\1 - matches a sequence of three identical characters. (.) captures one character, and \1 refers to the first captured group. so it matches a repeated character three times
+#"(..)\\1" - matches a two-character sequence followed by the same sequence. ( .. ) captures two characters and \\1 refers to the first captured group 
+
+#7 beginner regex crosswords 
+

@@ -2134,4 +2134,118 @@ str_replace_all("abc", c("$", "^", "\\b"), "--")
 #> [1] "abc--"   "--abc"   "--abc--"
 
 #15.4.3 character classes
+#a character class, or character set, allows you to match any character in a set. as we discussed above, you can construct your own sets with [], where [abc] matches “a”, “b”, or “c” and [^abc] matches any character except “a”, “b”, or “c”. apart from ^ there are two other characters that have special meaning inside of []:
+# - defines a range ex. [a-z] matches any lowercase letter and [0-9] matches an number
+# \ escapes special characters, so [\^\-\]] matches ^, - or ]
+#ex. 
+x <- "abcd ABCD 12345 -!@#%."
+str_view(x, "[abc]+")
+#> [1] │ <abc>d ABCD 12345 -!@#%.
+str_view(x, "[a-z]+")
+#> [1] │ <abcd> ABCD 12345 -!@#%.
+str_view(x, "[^a-z0-9]+")
+#> [1] │ abcd< ABCD >12345< -!@#%.>
+
+# you need an escape to match characters that are otherwise special inside of []: 
+str_view("a-b-c", "[a-c]")
+#> [1] │ <a>-<b>-<c>
+str_view("a-b-c", "[a\\-c]")
+#> [1] │ <a><->b<-><c>
+
+#some character classes are used so commonly that they get their own shortcut
+#\d matches any digit;
+#\D matches anything that isn’t a digit.
+#\s matches any whitespace (e.g., space, tab, newline);
+#\S matches anything that isn’t whitespace.
+#\w matches any “word” character, i.e. letters and numbers;
+#\W matches any “non-word” character.
+
+#15.4.4 quantifiers 
+#quantifiers control how many times a pattern matches.
+#ex., colou?r will match american or british spelling, \d+ will match one or more digits, and \s? will optionally match a single item of whitespace. you can also specify the number of matches precisely with {}:
+# {n} matches exactly n times.
+# {n,} matches at least n times.
+# {n,m} matches between n and m times.
+
+#15.4.5 operator precedence and parenthesis
+#what does ab+ match? 
+#regular expressions have their own precedence rules: 
+#quantifiers have high precedence and alternation has low precedence which means that ab+ is equivalent to a(b+), and ^a|b$ is equivalent to (^a)|(b$)
+#you can use parentheses to override the usual order. But unlike algebra you’re unlikely to remember the precedence rules for regexes, so feel free to use parentheses liberally.
+
+#15.4.6
+#parentheses have another important effect: they create capturing groups that allow you to use sub-components of the match.
+#first way to use a capturing group is to refer back to it within a match with back reference: \1 refers to the match contained in the first parenthesis, \2 in the second parenthesis, and so on
+#ex. the following pattern finds all fruits that have a repeated pair of letters: 
+str_view(fruit, "(..)\\1")
+#this one finds all words that start and end with the same pair of letters 
+str_view(words, "^(..).*\\1$")
+#you can also use back references in str_replace(). for example, this code switches the order of the second and third words in sentences:
+sentences |> 
+  str_replace("(\\w+) (\\w+) (\\w+)", "\\1 \\3 \\2") |> 
+  str_view()
+#can extract the matches for a group using str_match() but it returns a matrix so its not particularly easy to work with:
+sentences |> 
+  str_match("the (\\w+) (\\w+)") |> 
+  head()
+#you can convert to a tibble and name the columns: 
+sentences |> 
+  str_match("the (\\w+) (\\w+)") |> 
+  as_tibble(.name_repair = "minimal") |> 
+  set_names("match", "word1", "word2")
+#then you’ve basically recreated your own version of separate_wider_regex()
+
+#occasionally, you’ll want to use parentheses without creating matching groups. you can create a non-capturing group with (?:)
+x <- c("a gray cat", "a grey dog")
+str_match(x, "gr(e|a)y")
+#>      [,1]   [,2]
+#> [1,] "gray" "a" 
+#> [2,] "grey" "e"
+str_match(x, "gr(?:e|a)y")
+#>      [,1]  
+#> [1,] "gray"
+#> [2,] "grey"
+
+#15.5 pattern control
+#allows you to control the so called regex flags and match various types of fixed strings, as described below
+
+#15.5.1 regex flags  
+#there are a number of settings that can be used to control the details of the regexp
+#these settings are often called flags in other programming languages. 
+#in stringr, you can use these by wrapping the pattern in a call to regex(). 
+#the most useful flag is probably ignore_case = TRUE because it allows characters to match either their uppercase or lowercase forms:
+bananas <- c("banana", "Banana", "BANANA")
+str_view(bananas, "banana")
+str_view(bananas, regex("banana", ignore_case = TRUE))
+#if you are doing alot of work with multiline strings, strings that contain \n, dotall and multiline may also be useful:
+# dotall = TRUE lets . match everything including \n:
+x <- "Line 1\nLine 2\nLine 3"
+str_view(x, ".Line")
+str_view(x, regex(".Line", dotall = TRUE))
+# multiline = TRUE makes ^ and $ match the start and end of each line rather than the start and end of the complete string
+x <- "Line 1\nLine 2\nLine 3"
+str_view(x, "^Line")
+str_view(x, regex("^Line", multiline = TRUE))
+
+#if you’re writing a complicated regular expression and you’re worried you might not understand it in the future, you might try comments = TRUE
+#it tweaks the pattern language to ignore spaces and new lines, as well as everything after #. 
+#this allows you to use comments and whitespace to make complex regular expressions more understandable9, as in the following example:
+phone <- regex(
+  r"(
+    \(?     # optional opening parens
+    (\d{3}) # area code
+    [)\-]?  # optional closing parens or dash
+    \ ?     # optional space
+    (\d{3}) # another three numbers
+    [\ -]?  # optional space or dash
+    (\d{4}) # four more numbers
+  )", 
+  comments = TRUE
+)
+
+str_extract(c("514-791-8141", "(123) 456 7890", "123456"), phone)
+
+#if you are using comments and want to match a space, newline or #, youll need to escape it with \. 
+
+
 
