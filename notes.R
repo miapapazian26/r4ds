@@ -2248,4 +2248,31 @@ str_extract(c("514-791-8141", "(123) 456 7890", "123456"), phone)
 #if you are using comments and want to match a space, newline or #, youll need to escape it with \. 
 
 #15.6 practice
+# three general techniques: 
+# checking your work by creating simple positive and negative controls
+# combining regular expressions with Boolean algebra
+# creating complex patterns using string manipulation
 
+#15.6.1 check your work 
+#find all of the sentences that start with "The". using the ^ anchor alone is not enough
+str_view(sentences, "^The")
+#because that pattern also matches sentences starting with words like They or These, we need to make sure that the "e" is the last letter in the word, which we can do by adding a word boundary:
+str_view(sentences, "^The\\b")
+
+#what about finding all of the sentences that begin with a pronoun:
+str_view(sentences, "^She|He|It|They\\b")
+#why do we get spurious matches? we didnt use parenthesis:
+str_view(sentences, "^(She|He|It|They)\\b")
+
+#you might wonder how you may spot a mistake if it didnt occur in the first few matches. create a few positive and negative matches and use them to test that your pattern works as expected:
+pos <- c("He is a boy", "She had a good time")
+neg <- c("Shells come from the sea", "Hadley said 'It's a great day'")
+
+pattern <- "^(She|He|It|They)\\b"
+str_detect(pos, pattern)
+
+str_detect(neg, pattern)
+#it is typically easier to come up with positive examples than negative. 
+
+#15.6.2 boolean operations
+#imagine we want to find words that only contain consonants
