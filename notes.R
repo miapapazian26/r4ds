@@ -2275,4 +2275,49 @@ str_detect(neg, pattern)
 #it is typically easier to come up with positive examples than negative. 
 
 #15.6.2 boolean operations
-#imagine we want to find words that only contain consonants
+#imagine we want to find words that only contain consonants. one technique is to create a character class that contains all letters except for the vowels, ex. [^aeiou]. then allow that to match any number of letters, ex. [^aeiou]+. then force it to match the whole string by anchoring to the beginning and the end, ex. (^[^aeiou]+$)
+str_view(words, "^[^aeiou]+$")
+#you can flip the problem around to look for words that do not contain any vowels.
+str_view(words[!str_detect(words, "[aeiou]")])
+#this is a useful technique whenever dealing with logical combinations, particularly involving "and" or "not" 
+#ex. finding all words containing "a" and "b". there is no "and" operator built in to regular expressions, so we have to tackle it by looking for all words that contain an "a" followed by a "b" or a "b" followed by an "a":
+str_view(words, "a.*b|b.*a")
+#its simpler to combine the results of two calls to str_detect:
+words[str_detect(words, "a") & str_detect(words, "b")]
+
+#what if we wanted to see if there was a word that contains all vowels? 
+#simplest way is to combine five calls to str_detect:
+words[
+  str_detect(words, "a") &
+  str_detect(words, "e") &
+  str_detect(words, "i") &
+  str_detect(words, "o") &
+  str_detect(words, "u")  
+]
+
+#so break down a problem into smaller pieces to easily solve challenges
+
+#15.6.3 creating a pattern with code 
+#what if we wanted to find all sentences that mention a color - combine alternation with word boundaries
+str_view(sentences, "\\b(red|green|blue)\\b")
+
+#easier to store the colors in a vector: 
+rgb <- c("red", "green", "blue")
+#create the pattern from the vector using str_c and str_flatten
+str_c("\\b(", str_flatten(rgb, "|"), ")\\b")
+
+#to make more comprehensive, start with the list of built in colors that R can use for plots
+str_view(colors())
+#eliminate numbered variants:
+cols <- colors()
+cols <- cols[!str_detect(cols, "\\d")]
+str_view(cols)
+#then turn it into a giant pattern:
+pattern <- str_c("\\b(", str_flatten(cols, "|"), ")\\b")
+str_view(sentences, pattern)
+#in this example, cols only contains numbers and letters so you dont need to worry about metacharacters.
+
+
+
+
+
