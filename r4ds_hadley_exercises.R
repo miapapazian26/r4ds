@@ -499,3 +499,112 @@ datasets <- data(package = "datasets")$results[, "Item"]
 cleaned_datasets <- str_remove(datasets, "\\s*\\(.*\\)$")
 print(cleaned_datasets)
 
+#16.3.1 exercises
+#1
+data("gss_cat", package = "forcats")
+ggplot(gss_cat, aes(x = rincome)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(title = "Default Distribution of rincome", x = "Reported Income", y = "Count")
+
+gss_cat %>%
+  count(rincome, sort = TRUE) %>%
+  ggplot(aes(x = reorder(rincome, n), y = n)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  coord_flip() +
+  labs(title = "Improved Distribution of rincome", x = "Reported Income", y = "Count")
+#default bar chart is harder to read due to overlapping text on x-axis. improved chart reorders categories by frequency and flips coordinates
+
+#2
+#most common relig
+gss_cat |>
+  count(relig, sort = TRUE) |>
+  top_n(1)
+#most common partyid
+gss_cat |>
+  count(partyid, sort = TRUE) |>
+  top_n(1)
+
+#3
+#table of relig vs. denom
+table(gss_cat$relig, gss_cat$denom)
+#visualization
+gss_cat |>
+  filter(!is.na(denom)) |>
+  count(relig, denom) |>
+  ggplot(aes(x = relig, y = denom, size = n)) +
+  geom_point(alpha = 0.7, color = "blue") +
+  labs(title = "Relationship btwn relig and denom", x = "Religion", y = "Denomination")
+
+#16.4.1 exercises
+#1
+#mean can be misleading. you can view the distribution using: 
+ggplot(gss_cat, aes(x = tvhours)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  labs(title = "Distribution of tvhours", x = "TV Hours", y = "Count")
+#summary of statistics
+summary(gss_cat$tvhours)
+#remove outliers and re-compare: 
+gss_cat |>
+  filter(tvhours < quantile(tvhours, 0.99, na.rm = TRUE)) |>
+  summarise(
+    mean_tvhours = mean(tvhours, na.rm = TRUE),
+    median_tvhours = median(tvhours, na.rm = TRUE)
+  )
+
+#2
+#look at factors in gss_cat and their levels
+factor_levels <- gss_cat |>
+  select(where(is.factor)) |>
+  summarise(across(everything(), ~ list(levels(.))))
+
+#make the factor levels tidy
+factor_levels_tidy <- factor_levels %>%
+  pivot_longer(everything(), names_to = "Factor", values_to = "Levels") 
+
+factor_levels_tidy
+
+#arbitrary: race, denom, partyid, relig
+#principled: rincome, marital 
+
+#3
+#levels determine plotting order. moving not applicable to the front of the levels makes it the first level. 
+#when plotted, ggplot treats the first level as the bottom. or the leftmost axis
+
+#16.5.1 exercises
+#1
+#filter and group partyid categories
+party_trends_simple <- gss_cat |>
+  mutate(partyid = fct_collapse(partyid,
+                                Democrat = c("Strong Democrat", "Not Str Democrat", "Ind,Near Dem"),
+                                Republican = c("Not Str Republican", "Strong Republican", "Ind,Near Rep"),
+                                Independent = "Independent")) |>
+  count(year, partyid) |>
+  group_by(year) |>
+  mutate(proportion = n / sum(n))
+#plot trends
+ggplot(party_trends_simple, aes(x = year, y = proportion, color = partyid)) +
+  geom_line(size = 1) +
+  labs(title = "Trends in Party Identification Over Time",
+       x = "Year",
+       y = "Proportion",
+       color = "Party ID") +
+  theme_minimal()
+
+#2
+#collapse rincome into fewer categories
+gss_cat <- gss_cat |>
+  mutate(rincome_collapsed = fct_collapse(rincome,
+                                          Low = c("LT $1000", "$1000 to 2999", "$3000 to 3999"),
+                                          Middle = c("$4000 to 4999", "$5000 to 6999", "$7000 to 9999"),
+                                          High = c("$10000 to 14999", "$15000 or more"),
+                                          Unknown = c("Don't know", "No answer", "Refused", "Not applicable")))
+
+#check the results
+gss_cat |>
+  count(rincome_collapsed)
+
+#3
+#if there are fewer than n levels or if one of the levels is "Other" by default, it excludes "Other" from the count leaving 9 groups. 
+
+
