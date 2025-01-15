@@ -460,4 +460,42 @@ valid_words
 #7 beginner regex crosswords 
 
 #15.6.4 exercises
+#1
+result1 <- words[str_detect(words, "^x|x$")] #all words that start or end w x
+print(result1)
+
+result2 <- words[str_detect(words, "^[aeiouAEIOU].*[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ]$")] #find all words that start with a vowel and end with a consonant
+print(result2)
+
+contains_all_vowels <- any(str_detect(words, "(?=.*a)(?=.*e)(?=.*i)(?=.*u)"))
+print(contains_all_vowels)
+
+#2
+# supporting evidence: "ie" not after "c" OR "cei"
+supporting <- words[str_detect(words, "(?<!c)ie|cei")]
+print(supporting)
+
+violating <- words[str_detect(words, "cie|(?<!c)ei")]
+print(violating)
+
+#3
+#all color names
+color_names <- colors()
+
+#detect modified colors (prefix or suffix modifiers)
+modified_colors <- color_names[str_detect(color_names, "^(light|dark|medium|pale|bright|deep)|gray$")]
+
+#remove modifiers to extract base colors
+base_colors <- str_remove_all(modified_colors, "^(light|dark|medium|pale|bright|deep)|gray$")
+base_colors <- str_trim(base_colors)  # remove extra spaces
+
+print("Modified Colors:")
+print(modified_colors)
+print("Base Colors:")
+print(unique(base_colors))
+
+#4
+datasets <- data(package = "datasets")$results[, "Item"]
+cleaned_datasets <- str_remove(datasets, "\\s*\\(.*\\)$")
+print(cleaned_datasets)
 

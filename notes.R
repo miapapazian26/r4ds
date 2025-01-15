@@ -2317,6 +2317,18 @@ pattern <- str_c("\\b(", str_flatten(cols, "|"), ")\\b")
 str_view(sentences, pattern)
 #in this example, cols only contains numbers and letters so you dont need to worry about metacharacters.
 
+#15.7.1 tidyverse
+#there are three other useful places to use regex
+#matches(pattern) selects all variables whos name matches the supplied pattern. its a tidyselect function that you can use anywhere in any tidyverse function that selects variables. ex. select, rename_with and across
+#pivot_longer names_pattern argument takes a vector of regular expressions like separate_wider_regex. useful when extracting data out of variable names with a complex structure
+#delim argument in separate_longer_delim and separate_wider_delim usually matches a fixed string but you can use regex to make it a pattern. this is useful if you want to match a comma thatis optionally followed by a space, ex. regex(", ?")
+
+#15.7.2 base r
+#apropos(pattern) searches all objects available from the global environment that match the given pattern. this is useful if you can't quite remember the name of a function.
+apropos("replace")
+#list.files(path, pattern) lists all files in path that match a regular expression pattern. 
+#ex. you can find all the r markdown files in the current directory with:
+head(list.files(pattern = "\\.Rmd$"))
 
 
 
