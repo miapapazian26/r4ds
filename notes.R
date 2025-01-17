@@ -2523,3 +2523,6 @@ ordered(c("a", "b", "c"))
 #in both base R and tidyverse, ordered factors behave similarly to regular factors. there are only two places where different behavior is noticed
 #if you map an ordered factor to color or fill in ggplot2, it will default to scale_color_viridis()/scale_fill_viridis() which is a color scale that implies a ranking
 #if using an ordered predictor in a linear model it will use "polynomial contrasts". to learn more access vignette("contrasts", package = "faux") by lisa debruine
+
+#MISSING VALUES
+#18.1
