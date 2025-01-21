@@ -607,4 +607,10 @@ gss_cat |>
 #3
 #if there are fewer than n levels or if one of the levels is "Other" by default, it excludes "Other" from the count leaving 9 groups. 
 
+#18.3.4 exercises 
+#1
+missing_rows <- filter(flights_planes, is.na(model))
+head(missing_rows)
+summary(missing_rows)
 
+unique(missing_rows$tailnum)
