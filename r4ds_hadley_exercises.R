@@ -609,8 +609,15 @@ gss_cat |>
 
 #18.3.4 exercises 
 #1
-missing_rows <- filter(flights_planes, is.na(model))
-head(missing_rows)
-summary(missing_rows)
+#identify planes mentioned in flights but not present in planes:
+missing_planes <- flights |> 
+  distinct(tailnum) |> 
+  anti_join(planes, by = "tailnum")
+#join w/ flights dataset 
+missing_planes_with_carrier <- missing_planes |> 
+  left_join(flights, by = "tailnum") |> 
+  distinct(tailnum, carrier)
+#see relationship
+missing_planes_with_carrier |> 
+  count(carrier)
 
-unique(missing_rows$tailnum)

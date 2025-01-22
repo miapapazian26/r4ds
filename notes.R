@@ -2640,14 +2640,63 @@ flights |>
   distinct(tailnum) |>
   anti_join(planes)
 
+#18.4 factors and empty groups 
+#empty group missingness: does not contain any observations, can arise when working with factors 
+#ex. we have a dataset which contains some health information about people:
+health <- tibble(
+  name   = c("Ikaia", "Oletta", "Leriah", "Dashay", "Tresaun"),
+  smoker = factor(c("no", "no", "no", "no", "no"), levels = c("yes", "no")),
+  age    = c(34, 88, 75, 47, 56),
+)
+#we want to count the number of smokers with count():
+health |> count(smoker)
+#this dataset only contains non-smokers but we know smokers exist. 
+#we can use count to keep all of the groups, even those not seen in the data by using .drop = FALSE:
+health |> count(smoker, .drop = FALSE)
 
+#this same principle applies to ggplot2's discrete axes which will also drop levels that do not have any values.
+#you can force them to display by supplying drop = FALSE to the appropriate discrete axis: 
+ggplot(health, aes(x = smoker)) +
+  geom_bar() +
+  scale_x_discrete()
 
+ggplot(health, aes(x = smoker)) +
+  geom_bar() +
+  scale_x_discrete(drop = FALSE)
 
+#the same problem arises more generally with dplyr::group_by()
+#again we can use .drop = FALSE to preserve all factor levels: 
+health |> 
+  group_by(smoker, .drop = FALSE) |>
+  summarize(
+    n = n(),
+    mean_age = mean(age),
+    min_age = min(age),
+    max_age = max(age),
+    sd_age = sd(age)
+  )
 
+#important distinction between empty vectors (length zero) and missing values (length 1):
+#a vector containing 2 missing values
+x1 <- c(NA, NA)
+length(x1)
 
-
-
-
+x2 <- numeric()
+length(x2)
+#all summary functions work with zero length vectors 
+#if you combine the results, you can get a minimum or maximum of the new data
+#sometimes a simpler approach is to perform the summary and then make the implicit missings explicit with complete
+health |> 
+  group_by(smoker) |> 
+  summarize(
+    n = n(),
+    mean_age = mean(age),
+    min_age = min(age),
+    max_age = max(age),
+    sd_age = sd(age)
+  ) |> 
+  complete(smoker)
+#main drawback is you get an NA for the count when you know it would be zero. 
 
 
 
