@@ -2698,6 +2698,140 @@ health |>
   complete(smoker)
 #main drawback is you get an NA for the count when you know it would be zero. 
 
+#SPREADSHEETS
+#20.2 excel 
+#excel is a widely used spreadsheet software program where data are organized in worksheets inside of spreadsheet files 
+#20.2.1
+#need the readxl and writexl packages 
+library(readxl)
+library(tidyverse)
+library(writexl)
+
+#20.2.2
+#read_xls() read excel files with xls format 
+#read_xlsx() read excel files with xlsx format
+#read_excel() can read files with both xls and xlsx format, it guesses the file type based on the input
+#these functions all have similar syntax just luke other functions we have previously introduces for reading other types of files, ex. read_csv, read_table, etc.
+
+#20.2.3 reading excel spreadsheets 
+#first argument to read_excel is the path to the file to read:
+students <- read_excel("~/downloads/students.xlsx")
+students
+#there are a few things that we may want to address in the dataset 
+#the column names are all over the place. column names can be provided with a consistent format, snake_case and col_names is recommended
+read_excel(
+  "~/downloads/students.xlsx", 
+  col_names = c("student_id", "full_name", "favourite_food", "meal_plan", "age")
+)
+#this didn't do the trick. we now have the variable names we want, but what was previously the header row now shows up as the first observation in the data. you can explicitly skip that row using the skip arguemnt:
+read_excel(
+  "~/downloads/students.xlsx",
+  col_names = c("student_id", "full_name", "favourite_food", "meal_plan", "age"),
+  skip = 1
+)
+
+#next, in the favorite food column, one of the observations is N/A which stands for not available
+#it is currently not recognized as an NA, we can specify which character strings should be recognized as NAs with the na argument
+#by default, only "" (in excel terms only an empty cell) is recognized as an NA
+read_excel(
+  "~/downloads/students.xlsx",
+  col_names = c("student_id", "full_name", "favourite_food", "meal_plan", "age"),
+  skip = 1,
+  na = c("", "N/A")
+)
+
+#last remaining issue is that age is read in as a character variable but it should just be numeric
+#you can supply a col_types argument to read_excel() and specify the column types for the variables you read in. 
+#options are, skip, guess, logical, numeric, date, text and list 
+read_excel(
+  "~/downloads/students.xlsx",
+  col_names = c("student_id", "full_name", "favourite_food", "meal_plan", "age"),
+  skip = 1,
+  na = c("", "N/A"),
+  col_types = c("numeric", "text", "text", "text", "numeric")
+  )
+#did not produce the desired result. 
+#by specifying that age should be numeric, we have turned one cell with the non-numeric entry into an NA
+#in this case, we should read age in as "text", and then make the change once the data is loaded into R
+students <- read_excel(
+  "~/downloads/students.xlsx",
+  col_names = c("student_id", "full_name", "favourite_food", "meal_plan", "age"),
+  skip = 1,
+  na = c("", "N/A"),
+  col_types = c("numeric", "text", "text", "text", "text")
+)
+
+students <- students |>
+  mutate(
+    age = if_else(age == "five", "5", age),
+    age = parse_number(age)
+  )
+
+students
+
+#20.2.4 reading worksheets 
+#an important feature that distinguishes spreadsheets from flat files is the multiple sheets called worksheets
+#you can read a single worksheet from a spreadsheet with the sheet argument in read_excel
+#the default is the first sheet
+read_excel("~/downloads/penguins.xlsx", sheet = "Torgersen Island")
+#some variables that appear to contain numerical data are read in as characters due to the character string "NA" not being recognized as a true NA 
+penguins_torgersen <- read_excel("~/downloads/penguins.xlsx", sheet = "Torgersen Island", na = "NA")
+penguins_torgersen
+
+#alternatively, you can use excel_sheets to get information on all worksheets in an excel spreadsheet
+#then can read in the ones we are interested in
+excel_sheets("~/downloads/penguins.xlsx")
+#once we have the worksheet names, we can read them in individually
+penguins_biscoe <- read_excel("~/downloads/penguins.xlsx", sheet = "Biscoe Island", na = "NA")
+penguins_dream  <- read_excel("~/downloads/penguins.xlsx", sheet = "Dream Island", na = "NA")
+
+#the full penguins dataset is spread across three worksheets in the spreadsheet. each worksheet has the same number of columns but different number of rows 
+dim(penguins_torgersen)
+dim(penguins_biscoe)
+dim(penguins_dream)
+#we can put them together with bind rows:
+penguins <- bind_rows(penguins_torgersen, penguins_biscoe, penguins_dream)
+penguins
+
+#20.2.5 reading part of a sheet 
+deaths_path <- readxl_example("deaths.xlsx")
+deaths <- read_excel(deaths_path)
+deaths
+#the top three rows and the bottom four rows are not part of the data frame
+#it is possible to use skip and n_max arguments but using cell ranges is recommended
+#top left cell is A1
+#here, the data we want to read in starts in cell A5 and ends in cell F15. 
+#spreadsheet notation = A5:F15 which we supply to the range argument:
+read_excel(deaths_path, range = "A5:F15")
+
+#20.2.6 data types 
+#a cell can be one of four things 
+#boolean, like TRUE FALSE or NA
+#number, like "10" or "10.5"
+#datetime, can include time like "11/1/21" or "11/1/21 3:00 PM"
+#text string, like "ten"
+#excel has no notation of an integer
+#when importing the data into R readxl has to make some decisions: in this case you can set the type for this column to "list", which loads the column as a list of length 1 vectors, where the type of each element of the vector is guessed
+
+#20.2.7 writing to excel 
+#creating a small data frame that we can write out
+#item is a factor and quantity is an integer
+bake_sale <- tibble(
+  item = factor(c("brownie", "cupcake", "cookie")), 
+  quantity = c(10, 5, 8)
+)
+bake_sale
+#you can write data back to disk as an excel file using the write_xlsx(function) from the writexl package:
+write_xlsx(bake_sale, path = "outputs/bake-sale.xlsx")
+
+#just like reading from a CSV, information on data type is lost when we read the data back in. this makes excel files unreliable for caching interim results as well
+read_excel("outputs/bake-sale.xlsx")
+
+#20.2.8 formatted output
+#if you need to write sheets within a spreadsheet and style it, use openxlsx package
+
+
+
 
 
 

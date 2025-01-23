@@ -621,3 +621,20 @@ missing_planes_with_carrier <- missing_planes |>
 missing_planes_with_carrier |> 
   count(carrier)
 
+#20.2.9 exercises 
+#1 
+survey <- read_excel(
+  "~/downloads/survey.xlsx",  
+  col_names = c("survey_id", "n_pets"), 
+  skip = 1,                              
+  na = c("", "N/A"),                     
+  col_types = c("text", "text")          
+)
+
+survey <- survey |>
+  mutate(
+    n_pets = if_else(n_pets == "two", "2", n_pets), 
+    n_pets = parse_number(n_pets)                  
+  )
+survey
+#2
