@@ -637,4 +637,19 @@ survey <- survey |>
     n_pets = parse_number(n_pets)                  
   )
 survey
+
 #2
+library(tidyverse)
+library(readxl)
+roster <- read_excel("~/downloads/roster.xlsx")
+#fill missing values in 'group' and 'subgroup'
+roster <- roster |>
+  fill(group, subgroup, .direction = "down")
+print(roster)
+
+#3
+
+
+
+
+
