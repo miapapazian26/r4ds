@@ -2830,11 +2830,46 @@ read_excel("outputs/bake-sale.xlsx")
 #20.2.8 formatted output
 #if you need to write sheets within a spreadsheet and style it, use openxlsx package
 
+#20.3 google sheets 
+library(googlesheets4)
+library(tidyverse)
 
+#20.3.2
+#main function is read_sheet, reads a google sheet from a URL or a file ID. can also be range_read()
+#brand new sheet is gs4_create
 
+#20.3.3
+gs4_deauth()
+students_sheet_id <- "1V1nPp1tzOuutXFLb3G9Eyxi3qxeEhnOXUzL5_BcCQ0w"
+students <- read_sheet(students_sheet_id)
+students
+#we can supply column names, NA strings and column types to read_sheet
+students <- read_sheet(
+  students_sheet_id,
+  col_names = c("student_id", "full_name", "favourite_food", "meal_plan", "age"),
+  skip = 1,
+  na = c("", "N/A"),
+  col_types = "dcccc"
+)
+students
+#column names are defined differently here: ex. "dcccc"
+#its possible to read individual sheets from google sheets as well: can read "torgersen island" sheet
+penguins_sheet_id <- "1aFu8lnD_g0yjF5O-K6SFgSEWiHPpgvFCF0NY9D6LXnY"
+read_sheet(penguins_sheet_id, sheet = "Torgersen Island")
 
+#obtain a list of all sheets within a google sheet with sheet names: 
+sheet_names(penguins_sheet_id)
 
+#we can read in a portion of a google sheet by defining a range in read_sheet
+deaths_url <- gs4_example("deaths")
+deaths <- read_sheet(deaths_url, range = "A5:F15")
+deaths
 
+#20.3.4 writing to google sheets 
+#write from R to google sheets with write_sheet
+write_sheet(bake_sale, ss = "bake-sale")
+#can write data to a specific sheet inside a google sheet, you can specify that with the sheet argument as well 
+write_sheet(bake_sale, ss = "bake-sale", sheet = "Sales")
 
-
-
+#20.3.5
+#reading a private sheet requires authentication

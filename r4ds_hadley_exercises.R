@@ -680,3 +680,6 @@ colnames(students)
 #6
 #you cannot use read xls bc it only works from an older excel format 
 
+#20.3.6 exercises 
+#1
+
