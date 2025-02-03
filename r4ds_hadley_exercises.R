@@ -682,4 +682,25 @@ colnames(students)
 
 #20.3.6 exercises 
 #1
+students_excel <- read_excel("~/downloads/students.xlsx")
+students_sheet <- read_sheet(students_sheet_id)
+students_excel
+students_sheet
+#i think they are the same
 
+#2
+survey_sheet_id <- "1yc5gL-a2OOBr8M7B3IsDNX5uR17vBHOyWZq6xSTG2G8"
+survey_data <- read_sheet(survey_sheet_id, sheet = "Sheet1")
+survey_data <- survey_data |>
+  mutate(
+    survey_id = as.character(survey_id),   
+    n_pets = as.numeric(str_replace_all(n_pets, c("N/A" = NA, "two" = "2")))  # Replace text and convert
+  )
+str(survey_data)
+
+#3
+roster_sheet_id <- "1LgZ0Bkg9d_NK8uTdP2uHXm07kAlwx8-Ictf8NocebIE"
+roster_sheet <- read_sheet(roster_sheet_id)
+cleaned_roster_sheet <- roster_sheet |>
+  fill(group, subgroup, .direction = "down")
+cleaned_roster_sheet
