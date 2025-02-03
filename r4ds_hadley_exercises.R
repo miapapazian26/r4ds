@@ -641,6 +641,8 @@ survey
 #2
 library(tidyverse)
 library(readxl)
+library(dplyr)
+library(tidyr)
 roster <- read_excel("~/downloads/roster.xlsx")
 #fill missing values in 'group' and 'subgroup'
 roster <- roster |>
@@ -648,8 +650,33 @@ roster <- roster |>
 print(roster)
 
 #3
+#a
+sales <- read_excel("~/downloads/sales.xlsx", skip = 4, col_names =  FALSE)
+colnames(sales) <- c("id", "n")
+print(sales)
 
+#b 
+sales <- sales |>
+  mutate(brand = ifelse(grepl("Brand", id), id, NA)) |>  
+  fill(brand) |>  
+  filter(!grepl("Brand", id))  
+print(sales)
+sales <- sales |>
+  mutate(
+    id = as.numeric(id),
+    n = as.numeric(n)
+  )
+print(sales)
 
+#4
+write.xlsx(bake_sale, file = "~/downloads/bake_sale.xlsx")
 
+#5
+library(janitor)
+students_clean <- students |>
+  clean_names()
+colnames(students)
 
+#6
+#you cannot use read xls bc it only works from an older excel format 
 
