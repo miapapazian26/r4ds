@@ -2875,3 +2875,341 @@ write_sheet(bake_sale, ss = "bake-sale", sheet = "Sales")
 #reading a private sheet requires authentication
 
 #21.1 DATABASES
+# SQL = structured query language 
+# can translate dbplyr code to the SQL
+
+#21.1.1
+library(DBI)
+library(dbplyr)
+library(tidyverse)
+
+#21.2 database basics 
+#database is a collection of data frames called tables 
+#three differences between data frames and database tables: 
+#database table are stored on disk and can be arbitrarily large. data frames are stored in memory, and are fundamentally limited
+#database tables almost always have indexes. much like the index of a book, a database index makes it possible to quickly find rows of interest without having to look at every single row. data frames and tibbles dont have indexes but data.tables do, which is one of the reasons that they're so fast 
+#most classical databases are optimized for rapidly collecting data, not analyzing existing data. These databeses are called row-oriented because the data is stored row-by-row, rather than column-by-column like R. more recently, theres been much development of column-oriented databases that make analyzing the existing data much faster
+
+#databases are run by database management systems which come in three basic forms: 
+#client-server DBMS's run on a powerful central server, which you connect to from your computer (the client). they are great for sharing data with multiple people in an organization. popular client-server DBMS's include PostgreSQL, MariaDB, SQL Server, and Oracle 
+#cloud DBMS's, like Snowflake, Amazon's RedShift, and Google's BigQuery, are similar to client server DBMS's but they run in the cloud. this means that they can easily handle extremely large datasets and can automatically provide more compute resources as needed 
+#in process DBMS's like SQLite or duckdb run entirely on your computer. they are great for working with large datasets where you're the primary user
+
+#21.3 connecting to a database 
+#to connect to the databases from R, you can use a pair of packages: 
+#youll always use DBI because it provides a set of generic functions that connect to the database, upload data, run SQL queries, etc. 
+#you'll also use a package tailored for the DBMS you're connecting to. this package translates the generic DBI commands into the specifics needed for a given DBMS. there's usually one package for each DBMS, ex. RPostgres for PostgreSQL and RMariaDB for MySQL
+
+#if you can't find a specific package for your DBMS, you can usually use the odbc package instead. This uses the ODBC protocol supported by many DBMS. odbc requires a little more setup because you'll also need to install an ODBC driver and tell the odbc package where to find it
+#concretely, you create a database connection using DBI::dbConnect(). the first argument selects the DBMS^2 then the second and subsequent arguments describe how to connect to it (ex. where it lives and the credentials that you need to access it) 
+#some typical examples: 
+con <- DBI::dbConnect(
+  RMariaDB::MariaDB(), 
+  username = "foo"
+)
+con <- DBI::dbConnect(
+  RPostgres::Postgres(), 
+  hostname = "databases.mycompany.com", 
+  port = 1234
+)
+
+#the precise details of the connection vary a lot from DBMS to DBMS so all of the details cannot be covered here. 
+
+#21.3.1
+#for the sake of this book, we will use an in-process DBMS that lives entirely in an R package: duckdb
+#thanks to the magic of DBI, the only difference between using duckdb and any other DBMS is how you'll connect to the database. 
+#you can easily run this code as well as easily take what you learn and apply it elsewhere
+#connecting to duckn is simple bc the defaults create a temporary database that is deleted when you quit R.
+#this garuntees that you'll start from a clean slate every time you restart R: 
+con <- DBI::dbConnect(duckdb::duckdb())
+#duckdb is a high-performance database that's designed very much for the needs of a data scientist. we use it here because it's very easy to get started with, but it's also capable of handlingg gigbytes of data with great speed. if you want to use duckdb for a real data analysis project, you'll also need to supply the dbdir argument to make a persistent database and tell duckdb where to save it.
+#it is reasonable to store it in the duckdb directory of the current project: 
+con <- DBI::dbConnect(duckdb::duckdb(), dbdir = "duckdb")
+
+#21.3.2 load some data 
+#this is a new database so we need to add data. 
+#the simplest usage of dbWriteTable() needs three arguments: a database connection, the name of the table to create in the database, and a data frame of data:
+dbWriteTable(con, "mpg", ggplot2::mpg)
+dbWriteTable(con, "diamonds", ggplot2::diamonds)
+
+#duckdb_read_csv() and duckdb_register_arrow() these give you powerful ways to quickly load data directly into duckdb without having to first load it into R
+
+#21.3.3 DBI basics 
+#you can check that the data is loaded correctly by using a couple of other DBI functions: 
+#dbListTables() lists all tables in the database and dbReadTable() retrieves the contents of a table
+dbListTables(con)
+
+con |> 
+  dbReadTable("diamonds") |> 
+  as_tibble()
+#dbReadTable returns a data.frame so we use as_tibble() to convert it to a tibble so that it prints nicely
+#you can use dbGetQuery() to get the results of running a query on the database: 
+sql <- "
+  SELECT carat, cut, clarity, color, price 
+  FROM diamonds 
+  WHERE price > 15000
+"
+as_tibble(dbGetQuery(con, sql))
+
+#21.4 dbplyr basics
+#now that we've connected to a database and loaded the data, we can start to learn about dbplyr.
+#dbplyr is a dplyr backend, which means that you keep writing dplyr code but the backend executes it differently. in this, dbplyr translates to SQL; other backends include dtplyr - which executes your code on multiple cores 
+
+#first use tbl() to create an object that represents a database table:
+diamonds_db <- tbl(con, "diamonds")
+diamonds_db
+
+#in some cases you might need to supply a schema or a catalog and a schema in order to pick the table you are interested in
+#this object is lazy, when you use dplyr verbs on it, dplyr doesn't do any work: it just records the sequence of operations that you want to perform and only performs them when needed.
+#for ex. 
+big_diamonds_db <- diamonds_db |> 
+  filter(price > 15000) |> 
+  select(carat:clarity, price)
+
+big_diamonds_db
+
+#you can tell this object represents a database query because it prints the DBMS name at the top and while it tells u the number of columns it doesnt know the number of rows
+#this is because finding the total number of rows usually requires executing the complete query, something we're trying to avoid
+#you can see the SQL code generated by the dplyr function show_query()
+#write dplyr code, get dbplyr to translate it to SQL, then try to figure out how the two languages match up:
+big_diamonds_db |>
+  show_query()
+#to get all the data back into R, you can call collect().
+#behind the scenes this generates the SQL calls dbGetQuery to get the data, then turn the result into a tibble: 
+big_diamonds <- big_diamonds_db |> 
+  collect()
+big_diamonds
+#typically we use dbplyr to select the data you want from the database, performing basic filtering and aggregation using the translations described below, then, once ready to analyze the data with functions that are unique to R, you'll collect() the data to get an in-memory tibble, and continue work with pure R code. 
+
+
+#21.5 SQL
+#SQL through the lens of dbplyr
+#load nycflights13 package into learning database:
+dbplyr::copy_nycflights13(con)
+flights <- tbl(con, "flights")
+planes <- tbl(con, "planes")
+
+#21.5.1 SQL basics 
+#top level components of SQL are called statements
+#include create, insert, select (queries) - almost exclusively what is used as a data scientist
+#a query is made up of clauses. there are five important clauses: select, from, where, order by, and group by
+#every query must have the select and from clauses and the simplest query is select * from table, which selects all columns from the specified table. this is what dbplyr generates for an unadulterated table:
+flights |> show_query()
+planes |> show_query()
+#where and order by control which rows are included and how they are ordered: 
+flights |> 
+  filter(dest == "IAH") |> 
+  arrange(dep_delay) |>
+  show_query()
+#group by converts the query to a summary, causing aggregation to happen:
+flights |> 
+  group_by(dest) |> 
+  summarize(dep_delay = mean(dep_delay, na.rm = TRUE)) |> 
+  show_query()
+#there are two important differences between dplyr verbs and select causes:
+#in SQL, case doesnt matter: you can write select, SELECT or SeLeCt. in this book we will stick with the common convention of writing SQL keywords in uppercase to distinguish them from table or variables names 
+#in SQL order matters: you must always write the clauses in the order SELECT, FROM, WHERE, GROUP BY, ORDER BY
+#this order DOES NOT match how the clauses are actually evaluated which is FROM, WHERE, GROUP BY, SELECT, and ORDER BY
+
+#21.5.2 SELECT
+#SELECT clause is the workhorse of queries and performs the same job as select(), mutate(), rename(), relocate(), and summarize()
+#select() rename() and relocate() have very direct translations to select as they just affect where a column appears along with its name:
+planes |> 
+  select(tailnum, type, manufacturer, model, year) |> 
+  show_query()
+planes |> 
+  select(tailnum, type, manufacturer, model, year) |> 
+  rename(year_built = year) |> 
+  show_query()
+planes |> 
+  select(tailnum, type, manufacturer, model, year) |> 
+  relocate(manufacturer, model, .before = type) |> 
+  show_query()
+#this example also shows how SQL does renaming. in SQL terminology renaming is called aliasing and is done with AS. unlike mutate(), the old name is on the left and the new name is on the right
+#the translations for mutate() are similarly straighforward: each variable becomes a new expression in SELECT: 
+flights |> 
+  mutate(
+    speed = distance / (air_time / 60)
+  ) |> 
+  show_query()
+
+#21.5.3 FROM
+#the from clause defines the data source. it's going to be rather uninteresting for a little while because we are just looking at single tables. more complex -> join 
+
+#21.5.4 GROUP BY 
+#group_by() is translated to the GROUP BY clause and summarize() is translated to the SELECT clause: 
+diamonds_db |> 
+  group_by(cut) |> 
+  summarize(
+    n = n(),
+    avg_price = mean(price, na.rm = TRUE)
+  ) |> 
+  show_query()
+
+#21.5.5 WHERE 
+#filter() is translated to the WHERE clause: 
+flights |> 
+  filter(dest == "IAH" | dest == "HOU") |> 
+  show_query()
+
+flights |> 
+  filter(arr_delay > 0 & arr_delay < 20) |> 
+  show_query()
+# pipe becomes OR and & becomes AND
+# SQL uses = for comparison, not ==. SQL doesnt have assignment, so there is no potential for confusion there
+# SQL uses only '' for strings, not "". in SQL "" is used to identify variables, like R's
+# another useful SQL operator is IN which is close to R's %in%
+flights |> 
+  filter(dest %in% c("IAH", "HOU")) |> 
+  show_query()
+#SQL uses NULL instead of NA. NULLs behave similarly to NAs the main difference is that while they're "infectious" in comparisons and arithmetic, they are silently dropped when summarizing. dbplyr will remind you about this behavior:
+flights |> 
+  group_by(dest) |> 
+  summarize(delay = mean(arr_delay))
+#you can work with NULLs using the functions you'd use for NAs in R:
+flights |> 
+  filter(!is.na(dep_delay)) |> 
+  show_query()
+
+#this SQL query illustrates one of the drawbacks of dbplyr: while the SQL is correct, it isnt as simple as you might write by hand
+#in this case, you drop the parenthesis and use a special operator that's easier to read: 
+WHERE "dep_delay" IS NOT NULL
+
+#if you filter() a variable that you created using a summarize, dbplyr will generate a HAVING clause, rather than a WHERE clause.
+#WHERE is evaluated before SELECT and GROUP BY so SQL needs another clause that's evaluated afterwards
+diamonds_db |> 
+  group_by(cut) |> 
+  summarize(n = n()) |> 
+  filter(n > 100) |> 
+  show_query()
+
+#21.5.6 ORDER BY 
+#ordering rows involves a straightforward translation from arrange() to the ORDER BY clause: 
+flights |> 
+  arrange(year, month, day, desc(dep_delay)) |> 
+  show_query()
+#notice how desc() is translated to DESC: this is one of the many dyplyr functions whose name was directly inspired by SQL
+
+#21.5.7 subqueries
+#sometimes it's not possible to translate a dplyr pipeline into a single SELECT statement and you need to use a subquery
+#a subquery is just a query used as a data source in the FROM clause, instead of the usual table.
+#dbplyr typically uses subqueries to work around limitations of SQL. For example, expressions in the SELECT clause can't refer to columns that were just created. 
+#following pipeline needs to happen in two steps: 
+#inner query computes year1 and outer query computes year2
+
+flights |> 
+  mutate(
+    year1 = year + 1,
+    year2 = year1 + 1
+  ) |> 
+  show_query()
+#you can also see this if attempting to filter() a variable that you just created. remember even though WHERE is written after SELECT, it's evaluated before it, so we need a subquery in this ex. 
+flights |> 
+  mutate(year1 = year + 1) |> 
+  filter(year1 == 2014) |> 
+  show_query()
+#sometimes dbplyr will create a subquery where it's not needed because it doesn't yet know how to optimize that translation. as dbplyr improves over time, these cases will get rarer but will probably not go away
+
+#21.5.8 joins 
+#SQL joins are very similar to dplyr
+flights |> 
+  left_join(planes |> rename(year_built = year), by = "tailnum") |> 
+  show_query()
+#main thing to notice is the syntax: SQL joins use sub-clauses of the FROM clause to bring in additional tables using ON to define how the tables are related: 
+#functions are very closely related: inner_join, right_join, and full_join
+SELECT flights.*, "type", manufacturer, model, engines, seats, speed
+FROM flights
+INNER JOIN planes ON (flights.tailnum = planes.tailnum)
+
+SELECT flights.*, "type", manufacturer, model, engines, seats, speed
+FROM flights
+RIGHT JOIN planes ON (flights.tailnum = planes.tailnum)
+
+SELECT flights.*, "type", manufacturer, model, engines, seats, speed
+FROM flights
+FULL JOIN planes ON (flights.tailnum = planes.tailnum)
+
+#likely will need many joins when working with data from a database
+#bc database tables are often stored in a highly normalized form where each "fact" is stored in a single place and to keep a complete dataset for analysis you need to navigate a complex network of tables connected by primary and foreign keys
+#dm package can automatically determine the connections between tables using the constraints that DBAs often supply, visualize the connections so you can see what's going on, and generate the joins you need to connect one table to another
+
+#21.5.9 other verbs 
+#dbplyr also translates other verbs like distinct(), slice_*(), and intersect(), and a growing selection of tidyr functions like pivot_longer and pivot_wider
+
+#21.6 function translations 
+#what happens when you use mean(x) in a summarize()?
+#we’ll use a couple of little helper functions that run a summarize() or mutate() and show the generated SQL
+#makes it a little easier to explore a few variations and see how summaries and transformations can differ
+summarize_query <- function(df, ...) {
+  df |> 
+    summarize(...) |> 
+    show_query()
+}
+mutate_query <- function(df, ...) {
+  df |> 
+    mutate(..., .keep = "none") |> 
+    show_query()
+}
+
+#notice that some summary functions, like mean(), have a relatively simple translation while others, like median(), are much more complex
+#complexity is typically higher for operations that are common in statistics but less common in databases
+flights |> 
+  group_by(year, month, day) |>  
+  summarize_query(
+    mean = mean(arr_delay, na.rm = TRUE),
+    median = median(arr_delay, na.rm = TRUE)
+  )
+
+#translation of summary functions becomes more complicated when you use them inside a mutate() because they have to turn into so-called window functions. in SQL, you turn an ordinary aggregation function into a window function by adding OVER after it:
+flights |> 
+  group_by(year, month, day) |>  
+  mutate_query(
+    mean = mean(arr_delay, na.rm = TRUE),
+  )
+#in SQL, the GROUP BY clause is used exclusively for summaries so here you can see that the grouping has moved from the PARTITION BY argument to OVER
+#window functions include all functions that look forward or backwards, like lead() and lag() which look at the “previous” or “next” value respectively:
+flights |> 
+  group_by(dest) |>  
+  arrange(time_hour) |> 
+  mutate_query(
+    lead = lead(arr_delay),
+    lag = lag(arr_delay)
+  )
+#it’s important to arrange() the data, because SQL tables have no intrinsic order
+#if you don’t use arrange() you might get the rows back in a different order every time
+#for window functions, the ordering information is repeated: the ORDER BY clause of the main query doesn’t automatically apply to window functions.
+
+#another important SQL function is CASE WHEN. it’s used as the translation of if_else() and case_when(), the dplyr function that it directly inspired. 
+#here are a couple of simple examples:
+flights |> 
+  mutate_query(
+    description = if_else(arr_delay > 0, "delayed", "on-time")
+  )
+
+flights |> 
+  mutate_query(
+    description = 
+      case_when(
+        arr_delay < -5 ~ "early", 
+        arr_delay < 5 ~ "on-time",
+        arr_delay >= 5 ~ "late"
+      )
+  )
+
+#CASE WHEN is also used for some other functions that don’t have a direct translation from R to SQL. 
+#a good example of this is cut()
+flights |> 
+  mutate_query(
+    description =  cut(
+      arr_delay, 
+      breaks = c(-Inf, -5, 5, Inf), 
+      labels = c("early", "on-time", "late")
+    )
+  )
+
+#dbplyr also translates common string and date-time manipulation functions, which you can learn about in vignette("translation-function", package = "dbplyr"). 
+#dbplyr’s translations are certainly not perfect, and there are many R functions that aren’t translated yet, but dbplyr does a surprisingly good job covering the functions that you’ll use most of the time.
+
+
+
+

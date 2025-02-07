@@ -704,3 +704,26 @@ roster_sheet <- read_sheet(roster_sheet_id)
 cleaned_roster_sheet <- roster_sheet |>
   fill(group, subgroup, .direction = "down")
 cleaned_roster_sheet
+
+#21.5.10 exercises 
+#1
+#distinct is translated to SELECT DISTINCT - ensures duplicate rows are removed from the result set
+#head is translated to LIMIT - restricts the number of rows returned 
+
+#2
+SELECT *  
+FROM flights 
+WHERE dep_delay < arr_delay
+#selects all columns in the flights table where the departure delay (dep_delay) is less than the arrival delay (arr_delay)
+flights |>
+  filter(dep_delay < arr_delay)
+
+SELECT *, distance / (air_time / 60) AS speed  
+FROM flights
+#selects all columns from the flights table and calculates a new column called speed, which is computed as distance divided by air_time / 60. this converts air_time from minutes to hours, so the calculation gives the average speed of each flight in miles per hour (mph)
+flights |>
+  mutate(speed = distance / (air_time / 60))
+
+
+
+
