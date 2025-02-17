@@ -3211,5 +3211,153 @@ flights |>
 #dbplyr’s translations are certainly not perfect, and there are many R functions that aren’t translated yet, but dbplyr does a surprisingly good job covering the functions that you’ll use most of the time.
 
 
+#22.1 ARROW
+#a powerful alternative to CSV format is the parquet format - open standards-based format widely used by big data systems 
+#we pair parquet files with Apaache Arrow, provides a dplyr backend allowing you to analyze larger-than-memory datasets using dplyr syntax
+#arrow is also extremely fast 
+#both arrow and dplyr provide dplyr backends, so you may wonder when to use each - in many cases the choice is made for you, the data is already in a database or in parquet files, and you'll want to work with it as is
+#but, starting with your own data (perhaps a CSV file) you can either load it into a database or convert it to parquet.
+library(tidyverse)
+library(arrow)
+#later in the chapter, we can see connections between arrow and duckdb, so we need also:
+library(dbplyr, warn.conflicts = FALSE)
+library(duckdb)
+
+#22.2 getting the data
+#the following code will create a cached copy of the data - data contains 41,389,465 rows that tell how many times each book was checked out each month from april 2005 to october 2022
+dir.create("data", showWarnings = FALSE)
+
+curl::multi_download(
+  "https://r4ds.s3.us-west-2.amazonaws.com/seattle-library-checkouts.csv",
+  "data/seattle-library-checkouts.csv",
+  resume = TRUE
+)
+
+#22.3 opening a dataset
+#a good rule of thumb - you sually want at least twice as much memory as the size of the data
+#so instead of using read_csv which reads in the entrie dataset into memory, we want to use arrow::open_dataset():
+seattle_csv <- open_dataset(
+  sources = "data/seattle-library-checkouts.csv", 
+  col_types = schema(ISBN = string()),
+  format = "csv"
+)
+#open_dataaset will scan a few thousand rows and figure out the structure of the dataset.
+#the ISBN column contains blank values for the first 80,000 rows so we have to specift the solumn type to work out the data structure
+#after being scanned it records what it's found and stops:
+seattle_csv
+#first line in the output tells you that seattle_csv is stored locally on-disk as a single CSV file, only loaded into memory as needed. remainder of the output tells you the column type that arrow has inputed for each column
+
+#we can see whats actually in with glimpse()
+#reveals that there are 41 million rows and 21 columns 
+seattle_csv |> glimpse()
+
+#we can start to use this dataset with dplyr verbs
+#collect() forces arrow to perform the computation and return some data
+#ex. this code tells us the total number of checkouts per year: 
+seattle_csv |> 
+  group_by(CheckoutYear) |>
+  summarise(Checkouts = sum(Checkouts)) |>
+  arrange(CheckoutYear) |>
+  collect()
+#thanks to arrow, this code will work regardless of how large the underlying data set is
+#we can make the code work faster by switching to a better format 
+
+#22.4 the parquet format 
+#switch to parquet format and split it up into multiple files to make the data easier to work with
+
+#22.4.1 advantages of parquet
+#used for rectangular data but instead of being a text format it is a custom binary format designed specifically for the needs of big data
+#this means:
+  #parquet files are usually smaller than equivalent CSV files
+  #parquet files have a rich type system - they store data in a way that records the type along with the data
+  #parquet files are "column-oriented" - meaning they are organized by column to column - much like R. this leads to better performance for data rather than row-by-row organization 
+  #parquet files are chunked, which makes it possible to work on different parts of the file at the same time - can also potentially skip chunks alltogether
+#one primary disadvantage - no longer human readable
+
+#22.4.2 partitioning
+#it is useful to split large data sets across many files - can lead to significant improvements in performance 
+#arrow suggests avoiding files smaller than 20MB and bigger than 2GB. 
+
+#22.4.3 rewriting the seattle library data
+#we want to partition by checkoutyear
+#we define the partition using dplyr::group_by() and then save the partitions to a directory with arrow::write_dataset
+#write data_set has two important arguments: a directory where we will create the files and the format we will use: 
+pq_path <- "data/seattle-library-checkouts"
+seattle_csv |> 
+  group_by(CheckoutYear) |> 
+  write_dataset(path = pq_path, format = "parquet")
+#this takes a minute to run - but makes future operations much faster 
+#look at what we just produced: 
+tibble(
+  files = list.files(pq_path, recursive = TRUE),
+  size_MB = file.size(file.path(pq_path, files)) / 1024^2
+)
+  
+  
+#22.5 using dplyr with arrow
+#once we have created the parquet files, we need to read them in again
+#using open_dataset() but this time we give it a directory
+seattle_pq <- open_dataset(pq_path)
+#now we can write our dplyr pipeline
+#ex., we can count the total number of books checked out in each month for the last five years:
+query <- seattle_pq |>
+  filter(CheckoutYear >= 2018, MaterialType == "BOOK") |> 
+  group_by(CheckoutYear, CheckoutMonth) |> 
+  summarize(TotalCheckouts = sum(Checkouts)) |>
+  arrange(CheckoutYear, CheckoutMonth)
+  
+#writing dplyr code for arrow data is conceptually similar to dbplyr
+#you write dplyr code, which is automatically transformed into a query, that the Arrow C++ library understands, which is then executed when you call collect()
+#if you print out the query object we can see a little information about what we expect Arrow to return when the execution takes place 
+query
+#get results by calling collect():
+query |> collect()
+
+#get complete list of supported functions with:
+?acero
+
+#22.5.1 performance 
+#first lets look at the impact of switching from CSV to parquet
+#ex. how long it takes to calculate the number of books checked out in each month of 2021, when the data is stored as a large csv: 
+seattle_csv |>
+  filter(CheckoutYear == 2021, MaterialType == "BOOK") |>
+  group_by(CheckoutMonth) |>
+  summarize(TotalCheckouts = sum(Checkouts)) |> 
+  arrange(desc(CheckoutMonth)) |>
+  collect() |>
+  system.time()
+
+#now try the new version of the dataset: 
+seattle_pq |> 
+  filter(CheckoutYear == 2021, MaterialType == "BOOK") |>
+  group_by(CheckoutMonth) |>
+  summarize(TotalCheckouts = sum(Checkouts)) |>
+  arrange(desc(CheckoutMonth)) |>
+  collect() |> 
+  system.time()
+
+#the ~100x speedup in performance is attributable to two factors: the multi-file partitioning and the format of individual files 
+
+#22.5.2 using duckdb with arrow
+#very easy to turn an arrow dataset into a DuckDB database by calling arrow::to_duckdb()
+seattle_pq |> 
+  to_duckdb() |>
+  filter(CheckoutYear >= 2018, MaterialType == "BOOK") |>
+  group_by(CheckoutYear) |>
+  summarize(TotalCheckouts = sum(Checkouts)) |>
+  arrange(desc(CheckoutYear)) |>
+  collect()
+#the best thing about to_duckdb is the transfer doesn't involve any memory copying and speaks to the goals of the arrow ecosystem
+
+
+
+
+
+
+
+
+
+
+
 
 

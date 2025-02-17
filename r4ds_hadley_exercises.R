@@ -724,6 +724,39 @@ FROM flights
 flights |>
   mutate(speed = distance / (air_time / 60))
 
+#22.5.3 exercises 
+#1
+most_popular_books <- seattle_pq |> 
+  filter(MaterialType == "BOOK") |> 
+  group_by(CheckoutYear, Title) |> 
+  summarise(TotalCheckouts = sum(Checkouts), .groups = "drop") |> 
+  slice_max(TotalCheckouts, n = 1, with_ties = FALSE) |> 
+  arrange(CheckoutYear) |> 
+  collect()
 
+#2
+most_books_author <- seattle_pq |> 
+  filter(MaterialType == "BOOK") |> 
+  group_by(Creator) |> 
+  summarise(TotalBooks = n_distinct(Title), .groups = "drop") |> 
+  arrange(desc(TotalBooks)) |>  
+  slice_head(n = 1) |>  
+  collect()
+
+most_books_author
+
+#3
+checkouts_summary <- seattle_pq |>
+  filter(CheckoutYear >= 2013, CheckoutYear <= 2022, MaterialType %in% c("BOOK", "EBOOK")) |>
+  group_by(CheckoutYear, MaterialType) |>
+  summarise(TotalCheckouts = sum(Checkouts), .groups = "drop") |>
+  collect()
+
+checkouts_summary |>
+  ggplot(aes(x = CheckoutYear, y = TotalCheckouts, color = MaterialType)) +
+  geom_line() +
+  labs(title = "Checkouts of Books vs Ebooks (2013-2022)",
+       x = "Year", y = "Total Checkouts", color = "Material Type") +
+  theme_minimal()
 
 
