@@ -759,4 +759,47 @@ checkouts_summary |>
        x = "Year", y = "Total Checkouts", color = "Material Type") +
   theme_minimal()
 
+#23.3.5 exercises 
+#1
+#you need the names_repair argument. 
+#if no names are provided, it will automatically generate column names 
+#missing values result in NA where data is absent.
+#2
+#unnest_longer with named list-columns
+#you get an additional column indicating the origin of each list element
+#suppress using .drop = TRUE
+#3
+#if you apply unnest_longer() to both y and z, alignment may break
+#unnest one column at a time and join the results 
+
+#23.4.4 exercises
+#1
+#estimate because data could be missing/repos deleted
+#2
+owners <- gh_repos |> unnest_wider(owner) |> distinct()
+#3
+aliases <- got_chars |> unnest_wider(json) |> select(id, aliases) |> unnest_longer(aliases)
+
+#23.5.4 exercises
+json_col <- parse_json('
+  {
+    "x": ["a", "x", "z"],
+    "y": [10, null, 3]
+  }
+')
+json_row <- parse_json('
+  [
+    {"x": "a", "y": 10},
+    {"x": "x", "y": null},
+    {"x": "z", "y": 3}
+  ]
+')
+
+df_col <- tibble(json = list(json_col)) 
+df_row <- tibble(json = json_row)
+
+df_col |> 
+  unnest_wider(json) |> 
+  unnest_longer(x) |> 
+  unnest_longer(y)
 

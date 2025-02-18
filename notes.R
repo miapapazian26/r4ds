@@ -3349,15 +3349,329 @@ seattle_pq |>
   collect()
 #the best thing about to_duckdb is the transfer doesn't involve any memory copying and speaks to the goals of the arrow ecosystem
 
+#23 HIERARCHICAL DATA
+#23.1
+#data rectangling: taking data that is hierarchical or tree-like and converting it into a rectangular data frame made up of rows and columns 
 
+#23.1.1 
+library(tidyverse)
+library(repurrrsive)
+library(jsonlite)
 
+#23.2 lists
+#if you want to store elements of different types in the same vector you'll need a list
+#create with list()
+x1 <- list(1:4, "a", TRUE)
+x1
+#it is often convinient to name the components or children of a list which you can do in the same way as naming the columns of a tibble: 
+x2 <- list(a = 1:2, b = 1:3, c = 1:4)
+x2
+#even for these very simple lists, printing takes up quite a lot of space
+#useful alternative is str()
+#generates a compact display of teh structure, de-emphasizing the contents
+str(x1)
 
+#23.2.1 HIERARCHY 
+#lists can contain any type of object, including other lists. this makes them suitable for representing hierarchical structures:
+x3 <- list(list(1, 2), list(3, 4))
+str(x3)
+#this is notably different to c() which generates a flat vector: 
+c(c(1, 2), c(3, 4))
+x4 <- c(list(1, 2), list(3, 4))
+str(x4)
+#as lists get more complex, str() gets more useful as it lets you see the hierarchy at a glance: 
+x5 <- list(1, list(2, list(3, list(4, list(5)))))
+str(x5)
+#as yhe list gets more complex, you need to switch to View()
 
+#23.2.2 list-columns 
+#lists can live inside a tibble called list-column 
+#list-columns are used alot in tidymodels ecosystem because they allow you store things like model outputs or resamples in a data frame 
+#simple ex. of list column 
+df <- tibble(
+  x = 1:2,
+  y = c("a", "b"), 
+  z = list(list(1, 2), list(3, 4, 5))
+)
+df
+#nothing special about lists tibble; they behave like any other column: 
+df |>
+  filter(x == 1)
 
+#computing with list-columns is harder
 
+#23.3 unnesting 
+#turning them back into regular rows and columns 
+#list-columns come in two basic forms - named and unnamed
 
+#when the children are named, they tend to have the same names in every row
+#for example in df1, every element of list-column y has two elements named a and b 
+#named list-columns naturally unnest into columns: each named element becomes a new named column 
+df1 <- tribble(
+  ~x, ~y, 
+  1, list(a = 11, b = 12),
+  2, list(a = 21, b = 22), 
+  3, list(a = 31, b = 32),
+)
 
+#when the children are unnamed, the number of elements tends to vary from row-to-row
+#for example, in df2, the elements of list-column y are unnames and vary in length from one to three
+#unnamed list-columns naturally unnest into rows: you'll get one row for each child 
+df2 <- tribble(
+  ~x, ~y,
+  1, list(11, 12, 13),
+  2, list(21),
+  3, list(31, 32),
+)
 
+#23.3.1 unnest_wider()
+df1 |>
+  unnest_wider(y)
+#by default the names of the new columns come exclusively from the names of the list elements but you can use the names_sep argument to request that they combine the column name and element name 
+#this is useful for disambiguating repeated names 
+df1 |> 
+  unnest_wider(y, names_sep = "_")
 
+#23.3.2 unnest_longer
+#when each row contains an unnamed list, it is most antural to put each element into it's own row
+df2 |>
+  unnest_longer(y)
+#note how x is duplicated for each element inside of y
+#we get one row of output for each element inside of the list-column
+#what happens if one of the elements is empty?:
+df6 <- tribble(
+  ~x, ~y,
+  "a", list(1, 2),
+  "b", list(3),
+  "c", list()
+)
+df6 |> unnest_longer(y)
+#we get zero rows in the output, so the row effectively disappears. if you want to preservev that row, adding NA in y, set keep_empty = TRUE.
 
+#23.3.3 inconsistent types 
+#ex., take the following dataset where the list-column y contains two numbers, a character, and a logical, which can’t normally be mixed in a single column.
+df4 <- tribble(
+  ~x, ~y,
+  "a", list(1),
+  "b", list("a", TRUE, 5)
+)
+#unnest longer always keeps the set of columns unchanged while changing the number of rows
+df4 |> 
+  unnest_longer(y)
+#the output contains a list-column, but every element of the list-column contains a single element 
+#unnest_longer() can’t find a common type of vector, it keeps the original types in a list-column
+
+#23.3.4 other functions 
+#unnest_auto()
+#unnest_wider()
+#unnest()
+
+#23.4 case studies 
+#start with gh_repos - this is a list that contains data about a collection of github repositories retrieved using the GitHub API
+#very deeply nested list so it's difficult to show the structure in this book; we recommend exploring a little on your own with View(gh_repos)
+repos <- tibble(json = gh_repos)
+repos
+#use unnest longer to put each child in its own row
+repos |> 
+  unnest_longer(json)
+#now each element is a named list so we can use unnest_wider to put each element into its own column 
+repos |>
+  unnest_longer(json) |>
+  unnest_wider(json)
+#this worked but we cannot see all of the columns - here we can look at the first 10
+repos |>
+  unnest_longer(json) |>
+  unnest_wider(json) |>
+  names() |>
+  head(10)
+#lets pull out a few that look interesting 
+repos |> 
+  unnest_longer(json) |> 
+  unnest_wider(json) |> 
+  select(id, full_name, owner, description)
+#you can use this to work back to understand how gh_repose was structured: each child was a GitHub user containing a list of up to 30 GitHub repositories that they created.
+
+#owner is another list-column, and since it contains a named list mwe can use unnest_wider() to get at the values: 
+repos |> 
+  unnest_longer(json) |> 
+  unnest_wider(json) |> 
+  select(id, full_name, owner, description) |> 
+  unnest_wider(owner)
+#problem - this list column also contains an id column and we cannot have two id columns in the same data frame 
+#use names_sep to resolve the problem: 
+repos |>
+  unnest_longer(json) |>
+  unnest_wider(json) |>
+  select(id, full_name, owner, description) |>
+  unnest_wider(owner, names_sep = "_")
+#gives another wide dataset but you can get the sense that owner appears to contain a lot of additional data about the person who owns the repository
+
+#23.4.2 relational data 
+#nested data is used to represent data that we'd usually spread across multiple data frames
+#ex. got_chars which contains data about characters that appear in the game of thrones books and tv series 
+#like gh_repose its a list, so we start by turning it into a list-column of a tibble
+chars <- tibble(json = got_chars)
+chars
+#a json column named elements so we will start by widening it: 
+chars |>
+  unnest_wider(json)
+#select a few columns to make easier to read 
+characters <- chars |> 
+  unnest_wider(json) |> 
+  select(id, name, gender, culture, born, died, alive)
+characters                
+#this dataset contains also many list-columns: 
+chars |> 
+  unnest_wider(json) |> 
+  select(id, where(is.list))
+#explore the titles column, its an unnamed list-column, so we'll unnest it into rows: 
+chars |> 
+  unnest_wider(json) |> 
+  select(id, titles) |> 
+  unnest_longer(titles)
+
+#might expect to see this data in its own table because it would be easy to join the characters data as needed
+#requires little cleaning: removing the rows containing empty strings and renaming titles to title since each row now only contains a single title
+titles <- chars |> 
+  unnest_wider(json) |> 
+  select(id, titles) |> 
+  unnest_longer(titles) |> 
+  filter(titles != "") |> 
+  rename(title = titles)
+titles
+
+#23.4.3 deeply nested 
+#list-column that is very deeply nester and requires repeated rounds of unnest_winder() and unnest_longer() to unravel: gmaps_cities
+#two column tibble containing five city names and the results of using googles geocoding API to determine their location: 
+gmaps_cities
+#json is a list-column with internal names, so we start with an unnest_wider():
+gmaps_cities |>
+  unnest_wider(json)
+#gives the status and the results. drop the status column since they;re all OK, in a real analysism you would also want to capture all the rows where status != "OK" and figure out what went wrong
+#results is an unnamed list, with either one or two elements, so unnest into rows: 
+gmaps_cities |> 
+  unnest_wider(json) |> 
+  select(-status) |> 
+  unnest_longer(results)
+#now results is a named list - so we can use unnest_wider: 
+locations <- gmaps_cities |> 
+  unnest_wider(json) |> 
+  select(-status) |> 
+  unnest_longer(results) |> 
+  unnest_wider(results)
+locations
+#now we can see why two cities got two results. washington matched both washington state and washington dc, and arlington matched arlington virginia and arlington texas
+#few diff places we can go from here: we might want to determine the exact location of the match, which is stored in the geometry list-column: 
+locations |> 
+  select(city, formatted_address, geometry) |> 
+  unnest_wider(geometry)
+#gives us new bounds (rectangular region) and location (a point). we can unnest location to se latitude and longitude: 
+locations |> 
+  select(city, formatted_address, geometry) |> 
+  unnest_wider(geometry) |> 
+  unnest_wider(location)
+#extracting the bounds requires a few more steps: 
+locations |> 
+  select(city, formatted_address, geometry) |> 
+  unnest_wider(geometry) |> 
+  # focus on the variables of interest
+  select(!location:viewport) |>
+  unnest_wider(bounds)
+#then rename southwest and northeast so we can use names_sep to create short but evocative names 
+locations |> 
+  select(city, formatted_address, geometry) |> 
+  unnest_wider(geometry) |> 
+  select(!location:viewport) |>
+  unnest_wider(bounds) |> 
+  rename(ne = northeast, sw = southwest) |> 
+  unnest_wider(c(ne, sw), names_sep = "_") 
+#note how we unnest two columns simultaneously by supplying a vector of variable names to unnest_wider
+#once you have discovered the path to get the components you are interested in, you can extract them directly using another tidyr function, hoist(): 
+locations |> 
+  select(city, formatted_address, geometry) |> 
+  hoist(
+    geometry,
+    ne_lat = c("bounds", "northeast", "lat"),
+    sw_lat = c("bounds", "southwest", "lat"),
+    ne_lng = c("bounds", "northeast", "lng"),
+    sw_lng = c("bounds", "southwest", "lng"),
+  )
+#see a few more examples in vignette("rectangling", package = "tidyr")
+
+#23.5 JSON 
+#JSON is short for javascript object notation and is the way that most web APIs return data
+
+#23.5.1 data types
+#JSON is a simple format designed to be easily read and written by machines, not humans - six key data types
+#four are scalar - 
+#simplest type is a null which is basically NA in R
+#string is much like string in R but must always use double quotes
+#number is similar to r's numbers: can use integer, decimal, or scientific
+#a boolean is similar to R's TRUE and FALSE but uses lowercase
+
+#array - unnamed list written with []
+#object is like a named list - written with {}
+
+#23.5.2 jsonlite
+#we’ll use only two jsonlite functions: read_json() and parse_json()
+#irl you will use read_json() to read a JSON file from disk: 
+#ex. the repurrsive package also provides the source for gh_user as a JSON file and you can read it with read_json():
+# a path to a json file inside the package:
+gh_users_json()
+#> [1] "/home/runner/work/_temp/Library/repurrrsive/extdata/gh_users.json"
+
+# read it with read_json()
+gh_users2 <- read_json(gh_users_json())
+
+# check it's the same as the data we were using previously
+identical(gh_users, gh_users2)
+#> [1] TRUE
+
+#using parse_json(): 
+#here are three simple JSON datasets, starting with a number, then putting a few numbers in an array, then putting that array in an object:
+str(parse_json('1'))
+
+str(parse_json('[1, 2, 3]'))
+
+str(parse_json('{"x": [1, 2, 3]}'))
+
+#jsonlite has another important function called fromJSON()
+#it performs automatic simplification (simplifyVector = TRUE)
+#works in simple cases but better to do rectangling yourself 
+
+#23.5.3 starting the rectangling process
+#most cases, JSON files contain a single top-level array, because they’re designed to provide data about multiple “things”, e.g., multiple pages, or multiple records, or multiple results
+#in this case, start your rectangling with tibble(json) so that each element becomes a row:
+json <- '[
+  {"name": "John", "age": 34},
+  {"name": "Susan", "age": 27}
+]'
+df <- tibble(json = parse_json(json))
+df
+
+df |> 
+  unnest_wider(json)
+
+#in rarer cases, the JSON file consists of a single top-level JSON object, representing one “thing”
+#kick off the rectangling process by wrapping it in a list, before you put it in a tibble:
+json <- '{
+  "status": "OK", 
+  "results": [
+    {"name": "John", "age": 34},
+    {"name": "Susan", "age": 27}
+ ]
+}
+'
+df <- tibble(json = list(parse_json(json)))
+df
+
+df |> 
+  unnest_wider(json) |> 
+  unnest_longer(results) |> 
+  unnest_wider(results)
+
+#you can reach inside the parsed JSON and start with the bit that you actually care about:
+df <- tibble(results = parse_json(json)$results)
+df |> 
+  unnest_wider(results)
 
